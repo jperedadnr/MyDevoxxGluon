@@ -1,9 +1,13 @@
 buildscript {
     repositories {
         jcenter()
+        google()
+        maven {
+            url 'http://nexus.gluonhq.com/nexus/content/repositories/releases'
+        }
     }
     dependencies {
-        classpath 'org.javafxports:jfxmobile-plugin:1.3.8'
+        classpath 'org.javafxports:jfxmobile-plugin:2.0.13'
     }
 }
 
@@ -17,7 +21,7 @@ repositories {
 }
 
 mainClassName = 'com.devoxx.DevoxxApplication'
-preloaderClassName = 'com.devoxx.DevoxxPreloader'
+//preloaderClassName = 'com.devoxx.DevoxxPreloader'
 
 // For desktop (for mobile check java.custom.properties)
 applicationDefaultJvmArgs = [
@@ -28,11 +32,12 @@ applicationDefaultJvmArgs = [
 
 dependencies {
     compile project(':DevoxxClientCommon')
-    compile 'com.gluonhq:glisten-afterburner:1.2.0'
-
-    compile 'com.gluonhq:charm-cloudlink-client:4.4.4'
-    compile 'com.gluonhq:charm-glisten-connect-view:4.3.7'
+    compile 'com.gluonhq:glisten-afterburner:1.3.0-jdk9'
+    compile 'com.gluonhq:charm-cloudlink-client:4.4.0-jdk9'
+    compile 'com.gluonhq:charm-glisten-connect-view:4.4.0-jdk9'
     compile 'com.gluonhq:maps:1.0.1'
+    compile 'javax.annotation:javax.annotation-api:1.3'
+    compile 'javax.xml.bind:jaxb-api:2.3.0'
 
     androidCompile 'com.google.android.gms:play-services-wearable:9.4.0'
 }
@@ -43,11 +48,14 @@ configurations.all {
     }
 }
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
 jfxmobile {
     downConfig {
         version charm_down_version
         plugins 'barcode-scan', 'browser', 'cache', 'connectivity', 'device', 'display', 'lifecycle',
-                'local-notifications', 'push-notifications', 'runtime-args', 'settings', 'share', 'statusbar', 'storage', 'video'
+                'local-notifications', 'push-notifications', 'runtime-args', 'settings', 'share', 'statusbar', 'storage' /*, 'video' */
     }
     android {
         manifest = 'src/android/AndroidManifest.xml'
@@ -59,13 +67,11 @@ jfxmobile {
         }
     }
     ios {
-        arch = 'arm64'
         infoPList = file('src/ios/Default-Info.plist')
         forceLinkClasses = [
                 'com.devoxx.**.*',
                 'com.gluonhq.**.*',
                 'javax.xml.stream.*.',
-                'io.datafx.**.*',
                 'javax.annotations.**.*',
                 'javax.inject.**.*',
                 'javax.json.**.*',

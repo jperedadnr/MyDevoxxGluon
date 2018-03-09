@@ -11,7 +11,7 @@ buildscript {
     }
 }
 
-ext.charm_down_version = "3.4.1"
+ext.charm_down_version = "3.7.0"
 
 allprojects {
     
@@ -22,6 +22,12 @@ allprojects {
         strictCheck true
         skipExistingHeaders true
         excludes(['**/*.json'])
+    }
+    
+    tasks.withType(JavaCompile) { compile ->
+        compile.options.compilerArgs += 
+           ["-XDstringConcat=inline",     
+            "-XDignore.symbol.file", "-encoding", "UTF-8"]
     }
 }
     
