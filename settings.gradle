@@ -1,6 +1,6 @@
 include 'DevoxxClientCommon'
 include 'DevoxxClientMobile'
-include 'DevoxxClientWearable'
+//include 'DevoxxClientWearable'
 include 'DevoxxRemoteFunctions'
 
 rootProject.name = 'MyDevoxx'

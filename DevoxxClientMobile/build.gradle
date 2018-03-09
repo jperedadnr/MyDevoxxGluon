@@ -91,9 +91,9 @@ task printf() << {
 
 project.afterEvaluate {
     explodeAarDependencies(project.configurations.androidCompile)
-    androidRelease.dependsOn copyWearableAPK
+    //androidRelease.dependsOn copyWearableAPK
 }
-
+/*
 task copyWearableAPK(type: Copy) {
     description = 'Copying wearable apk into res/raw'
     from project(':DevoxxClientWearable').file('build/javafxports/android/')
@@ -105,3 +105,4 @@ task copyWearableAPK(type: Copy) {
 // Note: Run androidRelease task for the client project only, and then install on mobile
 tasks.copyWearableAPK.dependsOn ':DevoxxClientWearable:androidRelease'
 
+*/
