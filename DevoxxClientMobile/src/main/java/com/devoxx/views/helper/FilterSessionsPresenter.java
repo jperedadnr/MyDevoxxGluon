@@ -269,7 +269,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
 
     @FXML
     private void apply(ActionEvent actionEvent) {
-        apply();
+        doApply();
     }
 
     private void addTrackCheckBox(Track track) {
@@ -286,7 +286,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         typeFilter.getChildren().add(cbProposalType);
     }
 
-    private void apply() {
+    private void doApply() {
         // update predicate with new search rules
         updateSearchPredicate();
         updateIsFilterApplied();
@@ -322,7 +322,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         }
         resetPeriodUI();
 
-        apply();
+        doApply();
     }
 
     private boolean checkDay(Session session) {
