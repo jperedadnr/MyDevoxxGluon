@@ -1,4 +1,4 @@
-//include 'DevoxxClientCommon'
+include 'DevoxxClientCommon'
 include 'DevoxxClientMobile'
 //include 'DevoxxClientWearable'
 include 'DevoxxRemoteFunctions'
