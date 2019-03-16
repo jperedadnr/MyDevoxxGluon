@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -75,11 +75,8 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
     private static final TimePeriod DEFAULT_TIME_PERIOD = TimePeriod.ALL;
 
     @FXML private VBox dayFilter;
-
     @FXML private VBox trackFilter;
-
     @FXML private VBox typeFilter;
-
     @FXML private VBox timePeriodFilter;
 
     @FXML private TabPane tabPane;
@@ -139,7 +136,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         sessionTypes.addListener((ListChangeListener<SessionType>) c -> {
             while (c.next()) {
                 for (SessionType type : c.getRemoved()) {
-                    for (Iterator<Node> iterator = typeFilter.getChildren().iterator(); iterator.hasNext();) {
+                    for (Iterator<Node> iterator = typeFilter.getChildren().iterator(); iterator.hasNext(); ) {
                         Node node = iterator.next();
                         if (((SessionType) node.getUserData()).getId() == type.getId()) {
                             iterator.remove();
@@ -156,7 +153,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         // TimePeriod Tab
         periodAll = new CheckBox(TimePeriod.ALL.toString());
         periodAll.setUserData(TimePeriod.ALL);
-        periodAll.selectedProperty().addListener( (observable, oldValue, newValue) -> {
+        periodAll.selectedProperty().addListener((observable, oldValue, newValue) -> {
             for (Node child : periodRadioBtContainer.getChildren()) {
                 child.setDisable(periodAll.isSelected());
             }
@@ -190,22 +187,13 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
             periodRadioBtContainer.getChildren().add(radioButton);
         }
         if (service.getConference() != null) {
-            updateTimePeriodSelection();
-            resetPeriodUI();
+            updateDayFilter(service.getConference());
+            loadFilterState();
         }
         service.conferenceProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                updateTimePeriodSelection();
-                resetPeriodUI();
-            }
-        });
-
-        if (service.getConference() != null) {
-            updateDayFilter(service.getConference());
-        }
-        service.conferenceProperty().addListener((obs, ov, nv) -> {
-            if (nv != null) {
-                updateDayFilter(nv);
+                updateDayFilter(newValue);
+                loadFilterState();
             }
         });
 
@@ -213,7 +201,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         resetButton.setText(DevoxxBundle.getString("OTN.FILTER.BUTTON.RESET"));
 
         showing.addListener((observable, oldValue, newValue) -> {
-            if(!newValue) {
+            if (!newValue) {
                 for (CheckBox checkBox : draftFilter) {
                     checkBox.setSelected(!checkBox.isSelected());
                 }
@@ -239,27 +227,22 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         apply();
     }
 
-    private void updateTimePeriodSelection() {
+    private void updatePeriodUI() {
         Conference conference = service.getConference();
         ZonedDateTime now = ZonedDateTime.now(conference.getConferenceZoneId());
         if (conference.getFromDateTime().isAfter(now) || conference.getEndDateTime().isBefore(now)) {
             selectedTimePeriod = TimePeriod.ALL;
-        } else {
-            selectedTimePeriod = DEFAULT_TIME_PERIOD;
         }
-    }
-
-    private void resetPeriodUI() {
         if (selectedTimePeriod == TimePeriod.ALL) {
             periodAll.setSelected(true);
         } else {
-            periodAll.setSelected(false);
             for (Node child : periodRadioBtContainer.getChildren()) {
                 if (child.getUserData() == selectedTimePeriod) {
                     ((RadioButton) child).setSelected(true);
-                    return;
+                    break;
                 }
             }
+            periodAll.setSelected(false);
         }
     }
 
@@ -280,13 +263,42 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     @FXML
-    private void addToFilter(ActionEvent actionEvent) {
-        draftFilter.add((CheckBox) actionEvent.getSource());
+    private void apply(ActionEvent actionEvent) {
+        apply();
+        saveFilterState();
     }
 
     @FXML
-    private void apply(ActionEvent actionEvent) {
+    private void reset(ActionEvent actionEvent) {
+        Filter.remove(service.getConference().getId());
+        reset();
+    }
+
+    private void apply() {
+        // update predicate with new search rules
+        updateSearchPredicate();
+        updateIsFilterApplied();
+        draftFilter.clear();
+        MobileApplication.getInstance().hideLayer(POPUP_FILTER_SESSIONS_MENU);
+    }
+
+    private void reset() {
+        for (Node node : dayFilter.getChildren()) {
+            ((CheckBox) node).setSelected(false);
+        }
+        for (Node node : trackFilter.getChildren()) {
+            ((CheckBox) node).setSelected(false);
+        }
+        for (Node node : typeFilter.getChildren()) {
+            ((CheckBox) node).setSelected(false);
+        }
+        selectedTimePeriod = TimePeriod.ALL;
+        updatePeriodUI();
         apply();
+    }
+
+    private void addToFilter(ActionEvent actionEvent) {
+        draftFilter.add((CheckBox) actionEvent.getSource());
     }
 
     private void addTrackCheckBox(Track track) {
@@ -306,43 +318,21 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         typeFilter.getChildren().add(cbSessionType);
     }
 
-    private void apply() {
-        // update predicate with new search rules
-        updateSearchPredicate();
-        updateIsFilterApplied();
-        draftFilter.clear();
-        MobileApplication.getInstance().hideLayer(POPUP_FILTER_SESSIONS_MENU);
+    private void addDayCheckBox(int day, String dayName) {
+        CheckBox cbDay = new CheckBox(dayName);
+        cbDay.setUserData(day + 1);
+        cbDay.setOnAction(this::addToFilter);
+        dayFilter.getChildren().add(cbDay);
     }
 
     private void updateDayFilter(Conference conference) {
         DateTimeFormatter formatter = DevoxxSettings.DATE_FORMATTER;
         dayFilter.getChildren().clear();
         for (int i = 0; i < conference.getDays().length; i++) {
-            CheckBox cbDay = new CheckBox(formatter.format(conference.getDays()[i]));
-            cbDay.setUserData(i + 1);
-            cbDay.setOnAction(this::addToFilter);
-            dayFilter.getChildren().add(cbDay);
+            String dayName = formatter.format(conference.getDays()[i]);
+            addDayCheckBox(i, dayName);
         }
-
         updateIsFilterApplied();
-    }
-
-    @FXML
-    private void reset(ActionEvent actionEvent) {
-        for (Node node : dayFilter.getChildren()) {
-            ((CheckBox) node).setSelected(false);
-        }
-
-        for (Node node : trackFilter.getChildren()) {
-            ((CheckBox) node).setSelected(false);
-        }
-
-        for (Node node : typeFilter.getChildren()) {
-            ((CheckBox) node).setSelected(false);
-        }
-        resetPeriodUI();
-
-        apply();
     }
 
     private boolean checkDay(Session session) {
@@ -371,12 +361,10 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         return false;
     }
 
-
     private boolean considerTrackFilter() {
         return considerAnyCheckBoxSelected(trackFilter);
     }
 
-  
     private boolean checkType(Session session) {
         if (session.getTalk() == null || session.getTalk().getTalkType() == null) {
             return false;
@@ -412,8 +400,6 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         );
     }
 
-
-
     private void updateIsFilterApplied() {
         isFilterApplied.set(considerDayFilter() || considerTrackFilter() || considerTypeFilter()
                 || considerPeriodFilter());
@@ -426,4 +412,49 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
         return false;
     }
 
+    private void loadFilterState() {
+        reset();
+        Filter filter = Filter.load(service.getConference().getId());
+        if (filter != null) {
+            for (Node child : dayFilter.getChildren()) {
+                if (filter.getDays().contains(child.getUserData())) {
+                    ((CheckBox) child).setSelected(true);
+                }
+            }
+            for (Node child : trackFilter.getChildren()) {
+                if (filter.getTracks().contains(((Track) child.getUserData()).getId())) {
+                    ((CheckBox) child).setSelected(true);
+                }
+            }
+            for (Node child : typeFilter.getChildren()) {
+                if (filter.getSessionTypes().contains(String.valueOf(((SessionType) child.getUserData()).getId()))) {
+                    ((CheckBox) child).setSelected(true);
+                }
+            }
+            selectedTimePeriod = filter.getTimePeriod();
+            updatePeriodUI();
+            updateIsFilterApplied();
+        }
+    }
+
+    private void saveFilterState() {
+        Filter filter = new Filter(service.getConference().getId());
+        for (Node node1 : dayFilter.getChildren()) {
+            if (node1 instanceof CheckBox && ((CheckBox) node1).isSelected()) {
+                filter.getDays().add((Integer) node1.getUserData());
+            }
+        }
+        for (Node node1 : trackFilter.getChildren()) {
+            if (node1 instanceof CheckBox && ((CheckBox) node1).isSelected()) {
+                filter.getTracks().add(((Track) node1.getUserData()).getId());
+            }
+        }
+        for (Node node : typeFilter.getChildren()) {
+            if (node instanceof CheckBox && ((CheckBox) node).isSelected()) {
+                filter.getSessionTypes().add(String.valueOf(((SessionType) node.getUserData()).getId()));
+            }
+        }
+        filter.setTimePeriod(selectedTimePeriod);
+        filter.save();
+    }
 }
