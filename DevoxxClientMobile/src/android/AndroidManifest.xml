@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
           package="com.devoxx" 
-          android:versionCode="363"
+          android:versionCode="364"
           android:versionName="3.4.5">
     <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="26"/>
 
