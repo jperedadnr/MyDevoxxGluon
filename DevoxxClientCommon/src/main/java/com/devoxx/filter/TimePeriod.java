@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017, Gluon Software
+ * Copyright (c) 2017, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -23,7 +23,6 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package com.devoxx.filter;
 
 import com.devoxx.model.Session;
@@ -48,6 +47,19 @@ public enum TimePeriod {
     @Override
     public String toString() {
         return DevoxxBundle.getBundle().getString(i18nKey);
+    }
+
+    public static TimePeriod fromString(String timePeriod) {
+        if (DevoxxBundle.getBundle().getString("OTN.FILTER.TIME_PERIOD.MORE_THAN_ONE_HOUR").equals(timePeriod)) {
+            return  MORE_THAN_ONE_HOUR_AGO;
+        }
+        if (DevoxxBundle.getBundle().getString("OTN.FILTER.TIME_PERIOD.MORE_THAN_TWO_HOURS").equals(timePeriod)) {
+            return  MORE_THAN_TWO_HOURS_AGO;
+        }
+        if (DevoxxBundle.getBundle().getString("OTN.FILTER.TIME_PERIOD.MORE_THAN_FOUR_HOURS").equals(timePeriod)) {
+            return  MORE_THAN_FOUR_HOURS_AGO;
+        }
+        return ALL;
     }
 
     public static boolean isSessionWithinPeriod(Session session, TimePeriod timePeriod) {
