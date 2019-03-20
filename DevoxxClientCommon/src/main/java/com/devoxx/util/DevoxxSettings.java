@@ -158,6 +158,11 @@ public class DevoxxSettings {
      */
     private static final EnumSet<DevoxxCountry> CONFERENCE_COUNTRIES_WITHOUT_FAVORITE = EnumSet.of(DevoxxCountry.MA);
 
+    /**
+     * List of conferences countries that support multiple languages
+     */
+    private static final EnumSet<DevoxxCountry> CONFERENCE_COUNTRIES_WITH_MULTIPLE_LANG = EnumSet.of(DevoxxCountry.FR);
+
     private static String uuid;
     public static String getUserUUID() {
         uuid = Services.get(SettingsService.class)
@@ -199,6 +204,10 @@ public class DevoxxSettings {
     
     public static boolean conferenceHasFavorite(Conference conference) {
         return ! conferenceInSet(CONFERENCE_COUNTRIES_WITHOUT_FAVORITE, conference);
+    }
+
+    public static boolean conferenceHasMultipleLanguages(Conference conference) {
+        return conferenceInSet(CONFERENCE_COUNTRIES_WITH_MULTIPLE_LANG, conference);
     }
     
     private static boolean conferenceInSet(EnumSet set, Conference conference) {
