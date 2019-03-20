@@ -224,6 +224,7 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
             }
         }
         selectedTimePeriod = TimePeriod.MORE_THAN_ONE_HOUR_AGO;
+        saveFilterState();
         apply();
     }
 
