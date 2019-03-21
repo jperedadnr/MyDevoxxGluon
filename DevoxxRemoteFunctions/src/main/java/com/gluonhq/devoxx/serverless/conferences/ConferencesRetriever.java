@@ -47,7 +47,7 @@ class ConferencesRetriever {
     public String retrieve(String cfpEndpoint, String ... paths) {
 
         WebTarget target = client.target(cfpEndpoint);
-        Arrays.asList(paths).forEach(target::path);
+        for (String s : paths) { target = target.path(s); }
         Response conferences = target.request().get();
         if (conferences.getStatus() == Response.Status.OK.getStatusCode()) {
             try (JsonReader conferencesReader = Json.createReader(new StringReader(conferences.readEntity(String.class)))) {

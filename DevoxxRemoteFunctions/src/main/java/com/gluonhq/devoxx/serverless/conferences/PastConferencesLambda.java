@@ -25,14 +25,23 @@
  */
 package com.gluonhq.devoxx.serverless.conferences;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import com.amazonaws.services.lambda.runtime.Context;
+
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class PastConferencesLambda extends ConferencesLambda {
+public class PastConferencesLambda implements ConferencesLambda {
 
     @Override
-    String getCfpEndpoint() {
+    public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
+        String jsonOutput = new ConferencesRetriever().retrieve(getCfpEndpoint());
+        try (Writer writer = new OutputStreamWriter(output)) {
+            writer.write(jsonOutput);
+        }
+    }
+
+    @Override
+    public String getCfpEndpoint() {
         return "https://www.devoxxians.com/api/public/events/past";
     }
 

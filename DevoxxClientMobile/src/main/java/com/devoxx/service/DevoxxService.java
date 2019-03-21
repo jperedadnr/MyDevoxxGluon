@@ -340,9 +340,8 @@ public class DevoxxService implements Service {
 
     @Override
     public GluonObservableList<Conference> retrievePastConferences() {
-        RemoteFunctionList fnConferences = RemoteFunctionBuilder.create("conferences")
+        RemoteFunctionList fnConferences = RemoteFunctionBuilder.create("allConferences")
                 .param("time", "past")
-                .param("type", "")
                 .list();
         final GluonObservableList<Conference> conferences = fnConferences.call(Conference.class);
         conferences.setOnFailed(e -> LOG.log(
@@ -355,6 +354,7 @@ public class DevoxxService implements Service {
     @Override
     public GluonObservableList<Conference> retrieveConferences() {
         RemoteFunctionList fnConferences = RemoteFunctionBuilder.create("allConferences")
+                .param("time", "upcoming")
                 .list();
         final GluonObservableList<Conference> conferences = fnConferences.call(new JsonIterableInputConverter<>(Conference.class));
         conferences.setOnFailed(e -> LOG.log(Level.WARNING,
@@ -459,7 +459,7 @@ public class DevoxxService implements Service {
 
         RemoteFunctionList fnSessions = RemoteFunctionBuilder.create("sessionsV2")
                 .param("cfpEndpoint", getCfpURL())
-                .param("conferenceId", getConference().getCfpVersion())
+                .param("conferenceId", getConference().getId())
                 .list();
 
         GluonObservableList<Session> sessionsList = fnSessions.call(Session.class);
@@ -511,7 +511,7 @@ public class DevoxxService implements Service {
 
         RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakers")
                 .param("cfpEndpoint", getCfpURL())
-                .param("conferenceId", getConference().getCfpVersion())
+                .param("conferenceId", getConference().getId())
                 .list();
 
         GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
@@ -541,7 +541,7 @@ public class DevoxxService implements Service {
             } else {
                 RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
                         .param("cfpEndpoint", getCfpURL())
-                        .param("conferenceId", getConference().getCfpVersion())
+                        .param("conferenceId", getConference().getId())
                         .param("uuid", uuid)
                         .object();
 
