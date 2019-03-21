@@ -25,20 +25,47 @@
  */
 package com.gluonhq.devoxx.serverless.conferences;
 
+import com.amazonaws.services.lambda.runtime.Context;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class FutureConferencesLambda extends ConferencesLambda {
+public class AllConferencesLambda implements ConferencesLambda {
 
     @Override
-    String getCfpEndpoint() {
-        return "https://www.devoxxians.com/api/public/events/upcoming";
+    public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
+        String time = null;
+        if (input != null) {
+            try (JsonReader reader = Json.createReader(input)) {
+                JsonObject jsonInput = reader.readObject();
+                time = jsonInput.containsKey("time") ? jsonInput.getString("time") : null;
+
+            }
+        }
+        if (time == null || time.isEmpty()) {
+            time = "upcoming";
+        }
+        String jsonOutput = new ConferencesRetriever().retrieve(getCfpEndpoint(), time);
+        try (Writer writer = new OutputStreamWriter(output)) {
+            writer.write(jsonOutput);
+        }
+    }
+
+    @Override
+    public String getCfpEndpoint() {
+        return "https://www.devoxxians.com/api/public/events";
     }
 
     public static void main(String[] args) throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
-        new FutureConferencesLambda().handleRequest(null, output, null);
+        // new AllConferencesLambda().handleRequest(new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)), output, null);
+        // new AllConferencesLambda().handleRequest(new ByteArrayInputStream("{\"time\":\"upcoming\"}".getBytes(StandardCharsets.UTF_8)), output, null);
+        new AllConferencesLambda().handleRequest(new ByteArrayInputStream("{\"time\":\"past\"}".getBytes(StandardCharsets.UTF_8)), output, null);
         System.out.println("output = " + new String(output.toByteArray(), StandardCharsets.UTF_8));
     }
 }
