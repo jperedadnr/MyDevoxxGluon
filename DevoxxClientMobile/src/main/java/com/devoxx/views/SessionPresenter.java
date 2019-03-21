@@ -59,6 +59,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Toggle;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
@@ -339,7 +341,27 @@ public class SessionPresenter extends GluonPresenter<DevoxxApplication> {
             audienceLevel.getStyleClass().add("audience-level");
             vbox.getChildren().add(audienceLevel);
         }
+        if (DevoxxSettings.conferenceHasMultipleLanguages(service.getConference())) {
+            vbox.getChildren().add(flag(session));
+        }
         return vbox;
+    }
+
+    private Node flag(Session session) {
+        ImageView imageView;
+        switch (session.getTalk().getLang()) {
+            case "fr":
+                imageView = new ImageView(new Image("/com/devoxx/images/flags/flag-for-france.png"));
+                break;
+            case "en":
+                imageView = new ImageView(new Image("/com/devoxx/images/flags/flag-for-united-kingdom.png"));
+                break;
+            default:
+                return null;
+        }
+        imageView.setFitWidth(20);
+        imageView.setFitHeight(20);
+        return imageView;
     }
 
     private Label fetchLabelForAudienceLevel(String audienceLevel) {
