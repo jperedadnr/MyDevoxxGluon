@@ -350,12 +350,12 @@ public class FilterSessionsPresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     private boolean checkTrack(Session session) {
-        if (session.getTalk() == null || session.getTalk().getTrackId() == null) {
+        if (session.getTalk() == null || session.getTalk().getTrack() == null) {
             return false;
         }
 
         for (Node node : trackFilter.getChildren()) {
-            if (((CheckBox) node).isSelected() && session.getTalk().getTrackId().equals(((Track) node.getUserData()).getName())) {
+            if (((CheckBox) node).isSelected() && session.getTalk().getTrack().equals(((Track) node.getUserData()).getName())) {
                 return true;
             }
         }
