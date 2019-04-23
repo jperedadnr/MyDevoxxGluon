@@ -946,9 +946,13 @@ public class DevoxxService implements Service {
     }
 
     private GluonObservableList<SponsorBadge> internalRetrieveSponsorBadges(Sponsor sponsor) {
-        return DataProvider.retrieveList(localDataClient.createListDataReader(getConference().getId() + "_" + sponsor.getSlug() + "_sponsor_badges_" +
+        GluonObservableList<SponsorBadge> localSponsorBadges = DataProvider.retrieveList(localDataClient.createListDataReader(getConference().getId() + "_" + sponsor.getSlug() + "_sponsor_badges_" +
                 Services.get(DeviceService.class).map(DeviceService::getUuid).orElse(System.getProperty("user.name")),
                 SponsorBadge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
+        localSponsorBadges.setOnFailed(ex -> {
+            LOG.log(Level.SEVERE, "Loading of badges for sponsor " + sponsor.getName() + " failed..", ex);
+        });
+        return localSponsorBadges;
     }
 
     private void loadCfpAccount(User user, Runnable successRunnable) {
