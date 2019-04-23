@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -54,8 +54,6 @@ import com.gluonhq.connect.GluonObservableObject;
 import com.gluonhq.connect.converter.JsonInputConverter;
 import com.gluonhq.connect.converter.JsonIterableInputConverter;
 import com.gluonhq.connect.provider.DataProvider;
-import javafx.beans.Observable;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -151,7 +149,7 @@ public class DevoxxService implements Service {
     private ObservableList<Session> favoredSessions;
     private ObservableList<Note> notes;
     private ObservableList<Badge> badges;
-    private ObservableList<SponsorBadge> sponsorBadges;
+    private GluonObservableList<SponsorBadge> sponsorBadges;
 
     private GluonObservableObject<Favorites> allFavorites;
     private ListChangeListener<Session> internalFavoredSessionsListener = null;
@@ -350,7 +348,7 @@ public class DevoxxService implements Service {
                 e.getSource().getException()));
         return conferences;
     }
-    
+
     @Override
     public GluonObservableList<Conference> retrieveConferences() {
         RemoteFunctionList fnConferences = RemoteFunctionBuilder.create("allConferences")
@@ -383,7 +381,7 @@ public class DevoxxService implements Service {
             });
             conference.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException()));
         }
-        
+
         return conference;
     }
 
@@ -519,7 +517,7 @@ public class DevoxxService implements Service {
             retrievingSpeakers.set(false);
             LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
         });
-        speakersList.setOnSucceeded(e -> { 
+        speakersList.setOnSucceeded(e -> {
             speakers.setAll(speakersList);
             retrievingSpeakers.set(false);
         });
@@ -782,7 +780,7 @@ public class DevoxxService implements Service {
     }
 
     @Override
-    public ObservableList<SponsorBadge> retrieveSponsorBadges(Sponsor sponsor) {
+    public GluonObservableList<SponsorBadge> retrieveSponsorBadges(Sponsor sponsor) {
         
         if (sponsorBadges == null) {
             sponsorBadges = internalRetrieveSponsorBadges(sponsor);
@@ -888,7 +886,7 @@ public class DevoxxService implements Service {
 
     @Override
     public void refreshFavorites() {
-        if (getConference() != null && DevoxxSettings.conferenceHasFavoriteCount(getConference()) && 
+        if (getConference() != null && DevoxxSettings.conferenceHasFavoriteCount(getConference()) &&
                 (allFavorites.getState() == ConnectState.SUCCEEDED || allFavorites.getState() == ConnectState.FAILED)) {
             RemoteFunctionObject fnAllFavorites = RemoteFunctionBuilder.create("allFavorites")
                     .param("0", getCfpURL())
@@ -911,7 +909,7 @@ public class DevoxxService implements Service {
             });
         }
     }
-    
+
     @Override
     public User getAuthenticatedUser() {
         return authenticationClient.getAuthenticatedUser();
@@ -948,11 +946,9 @@ public class DevoxxService implements Service {
     }
 
     private GluonObservableList<SponsorBadge> internalRetrieveSponsorBadges(Sponsor sponsor) {
-        GluonObservableList<SponsorBadge> localSponsorBadges = DataProvider.retrieveList(localDataClient.createListDataReader(getConference().getId() + "_" + sponsor.getSlug() + "_sponsor_badges_" +
+        return DataProvider.retrieveList(localDataClient.createListDataReader(getConference().getId() + "_" + sponsor.getSlug() + "_sponsor_badges_" +
                 Services.get(DeviceService.class).map(DeviceService::getUuid).orElse(System.getProperty("user.name")),
                 SponsorBadge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
-
-        return localSponsorBadges;
     }
 
     private void loadCfpAccount(User user, Runnable successRunnable) {
