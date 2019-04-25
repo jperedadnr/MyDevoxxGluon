@@ -69,12 +69,17 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
 
     private Sponsor sponsor;
     private FloatingActionButton scan;
+    private CharmListView<SponsorBadge, String> sponsorBadges = new CharmListView<>();
 
     public void initialize() {
 
         scan = new FloatingActionButton();
         scan.getStyleClass().add("badge-scanner");
         scan.showOn(sponsorView);
+
+        sponsorBadges.setPlaceholder(new Placeholder(EMPTY_LIST_MESSAGE, DevoxxView.SPONSOR_BADGE.getMenuIcon()));
+        sponsorBadges.setCellFactory(param -> new BadgeCell<>());
+        sponsorView.setCenter(sponsorBadges);
 
         sponsorView.setOnShowing(event -> {
             AppBar appBar = getApp().getAppBar();
@@ -93,11 +98,12 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
 
     public void setSponsor(Sponsor sponsor) {
         this.sponsor = sponsor;
+        // TODO: Call the RF only if the sponsor has changed
         loadSponsorBadges(sponsor);
     }
 
     private void loadSponsorBadges(Sponsor sponsor) {
-        CharmListView<SponsorBadge, String> sponsorBadges = new CharmListView<>();
+
         final GluonObservableList<SponsorBadge> badges = service.retrieveSponsorBadges(sponsor);
         badges.setOnSucceeded(e -> {
             final FilteredList<SponsorBadge> filteredBadges = new FilteredList<>(badges, badge -> {
@@ -105,10 +111,6 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
             });
             sponsorBadges.setItems(filteredBadges);
         });
-
-        sponsorBadges.setPlaceholder(new Placeholder(EMPTY_LIST_MESSAGE, DevoxxView.SPONSOR_BADGE.getMenuIcon()));
-        sponsorBadges.setCellFactory(param -> new BadgeCell<>());
-        sponsorView.setCenter(sponsorBadges);
 
         final Button shareButton = getApp().getShareButton(BadgeType.SPONSOR, sponsor);
         shareButton.disableProperty().bind(sponsorBadges.itemsProperty().emptyProperty());
