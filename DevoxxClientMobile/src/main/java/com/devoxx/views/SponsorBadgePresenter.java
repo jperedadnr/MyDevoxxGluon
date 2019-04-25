@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -47,6 +47,7 @@ import com.gluonhq.charm.glisten.control.CharmListView;
 import com.gluonhq.charm.glisten.control.FloatingActionButton;
 import com.gluonhq.charm.glisten.control.Toast;
 import com.gluonhq.charm.glisten.mvc.View;
+import com.gluonhq.connect.GluonObservableList;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
@@ -98,12 +99,15 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     private void loadSponsorBadges(Sponsor sponsor) {
-        final ObservableList<SponsorBadge> badges = service.retrieveSponsorBadges(sponsor);
-        final FilteredList<SponsorBadge> filteredBadges = new FilteredList<>(badges, badge -> {
-            return badge != null && badge.getSponsor() != null && badge.getSponsor().equals(sponsor);
+        CharmListView<SponsorBadge, String> sponsorBadges = new CharmListView<>();
+        final GluonObservableList<SponsorBadge> badges = service.retrieveSponsorBadges(sponsor);
+        badges.setOnSucceeded(e -> {
+            final FilteredList<SponsorBadge> filteredBadges = new FilteredList<>(badges, badge -> {
+                return badge != null && badge.getSponsor() != null && badge.getSponsor().equals(sponsor);
+            });
+            sponsorBadges.setItems(filteredBadges);
         });
 
-        CharmListView<SponsorBadge, String> sponsorBadges = new CharmListView<>(filteredBadges);
         sponsorBadges.setPlaceholder(new Placeholder(EMPTY_LIST_MESSAGE, DevoxxView.SPONSOR_BADGE.getMenuIcon()));
         sponsorBadges.setCellFactory(param -> new BadgeCell<>());
         sponsorView.setCenter(sponsorBadges);

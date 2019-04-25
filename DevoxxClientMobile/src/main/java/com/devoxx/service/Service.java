@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -233,7 +233,7 @@ public interface Service {
      * @throws IllegalStateException when no user is currently authenticated
      * @param sponsor The sponsor for which badges are to be retrieved
      */
-    ObservableList<SponsorBadge> retrieveSponsorBadges(Sponsor sponsor);
+    GluonObservableList<SponsorBadge> retrieveSponsorBadges(Sponsor sponsor);
 
     /**
      * Logs out the currently logged in sponsor
