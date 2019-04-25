@@ -85,6 +85,8 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
                 final Sponsor sponsor = Sponsor.fromCSV(service.retrieve(DevoxxSettings.BADGE_SPONSOR));
                 if (this.sponsor != null && this.sponsor.equals(sponsor)) {
                     appBar.setTitleText(DevoxxBundle.getString("OTN.SPONSOR.BADGES.FOR", sponsor.getName()));
+                    // Fix for Github issue: 229
+                    setSponsor(sponsor);
                 }
             });
         });
