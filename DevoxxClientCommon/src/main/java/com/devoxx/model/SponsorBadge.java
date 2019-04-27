@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Gluon Software
+ * Copyright (c) 2018, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -25,14 +25,20 @@
  */
 package com.devoxx.model;
 
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Objects;
 
 public class SponsorBadge extends Badge {
-    
+
+    private static final SimpleDateFormat DATE_TIME_FORMATTER = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     public SponsorBadge() {
         
     }
@@ -62,6 +68,18 @@ public class SponsorBadge extends Badge {
         sponsor.set(value);
     }
 
+    // dateTime
+    private final LongProperty dateTime = new SimpleLongProperty(this, "dateTime");
+    public final LongProperty dateTimeProperty() {
+       return dateTime;
+    }
+    public final long getDateTime() {
+       return dateTime.get();
+    }
+    public final void setDateTime(long value) {
+        dateTime.set(value);
+    }
+
     @Override
     public boolean contains(String keyword) {
         if (keyword == null || keyword.isEmpty()) {
@@ -84,18 +102,22 @@ public class SponsorBadge extends Badge {
         if (!super.equals(o)) return false;
         SponsorBadge that = (SponsorBadge) o;
         return Objects.equals(getBadgeId(), that.getBadgeId()) &&
-                Objects.equals(getSponsor(), that.getSponsor());
+                Objects.equals(getSponsor(), that.getSponsor()) &&
+                Objects.equals(getDateTime(), that.getDateTime());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), getBadgeId(), sponsor);
+        return Objects.hash(super.hashCode(), getBadgeId(), getSponsor(), getDateTime());
     }
 
     @Override
     public String toCSV() {
         StringBuilder csv = new StringBuilder(super.toCSV());
         csv.append(",").append(safeStr(getSponsor().getName()));
+        if (getDateTime() != 0L) {
+            csv.append(",").append(safeStr(DATE_TIME_FORMATTER.format(new Timestamp(getDateTime()))));
+        }
         return csv.toString();
     }
 }
