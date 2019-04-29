@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019 Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -146,6 +146,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
             }
             if (!exists) {
                 badge.setSponsor(sponsor);
+                badge.setDateTime(System.currentTimeMillis());
                 badges.add(badge);
                 // Keep SponsorBadgeView on view stack 
                 DevoxxView.BADGE.switchView(ViewStackPolicy.USE).ifPresent(presenter -> ((BadgePresenter) presenter).setBadge(badge, BadgeType.SPONSOR));

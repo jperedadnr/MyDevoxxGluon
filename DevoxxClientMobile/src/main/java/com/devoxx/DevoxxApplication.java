@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -245,7 +245,7 @@ public class DevoxxApplication extends MobileApplication {
                                 writer.newLine();
                             }
                         } else if (BadgeType.SPONSOR == badgeType) {
-                            writer.write("ID,First Name,Last Name,Company,Email,Details,Slug");
+                            writer.write("ID,First Name,Last Name,Company,Email,Details,Slug,Timestamp");
                             writer.newLine();
                             for (SponsorBadge badge : service.retrieveSponsorBadges(sponsor)) {
                                 writer.write(badge.toCSV());
