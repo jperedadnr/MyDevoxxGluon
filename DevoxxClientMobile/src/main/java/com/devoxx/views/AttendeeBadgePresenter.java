@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Gluon Software
+ * Copyright (c) 2018, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -177,7 +177,7 @@ public class AttendeeBadgePresenter extends GluonPresenter<DevoxxApplication> {
             if (!exists) {
                 attendeeBadges.itemsProperty().add(badge);
                 // Keep AttendeeBadgeView on stack 
-                DevoxxView.BADGE.switchView(ViewStackPolicy.USE).ifPresent(presenter -> ((BadgePresenter) presenter).setBadge(badge, ATTENDEE));
+                DevoxxView.BADGE.switchView(ViewStackPolicy.USE).ifPresent(presenter -> ((BadgePresenter) presenter).setBadge(badge, ATTENDEE, true));
             }
         } else {
             Toast toast = new Toast(DevoxxBundle.getString("OTN.BADGES.BAD.QR"));

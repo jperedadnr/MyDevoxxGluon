@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2017, 2018 Gluon Software
+/*
+ * Copyright (c) 2017, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -42,6 +42,7 @@ import com.gluonhq.charm.glisten.mvc.View;
 import com.gluonhq.charm.glisten.visual.MaterialDesignIcon;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -79,7 +80,14 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
     private Badge badge;
     private Timeline timer;
     private boolean textChanged;
+    private boolean scanned;
     private BadgeType badgeType;
+    private ChangeListener<String> detailsChangeListener = (observable, oldValue, newValue) -> {
+        if (newValue != null && !newValue.isEmpty()) {
+            textChanged = true;
+            timer.playFromStart();
+        }
+    };
 
     public void initialize() {
         badgeView.setOnShowing(event -> {
@@ -95,18 +103,19 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
         timer = new Timeline();
         timer.setCycleCount(1);
         KeyFrame keyFrame = new KeyFrame(Duration.millis(WAIT_TIME), event -> {
-            if (textChanged) {
+            if (textChanged && badge != null) {
                 saveBadge();
+                textChanged = false;
             }
         });
         timer.getKeyFrames().add(keyFrame);
         
-        details.textProperty().addListener((observable, oldValue, newValue) -> {
-            textChanged = true;
-            timer.playFromStart();
+        badgeView.setOnHiding(event -> {
+            if (scanned && badge != null) {
+                saveBadge();
+            }
+            details.textProperty().removeListener(detailsChangeListener);
         });
-        
-        badgeView.setOnHiding(event -> saveBadge());
         
         // Fix for keyboard not showing on Android.
         // As TextArea is the only focusable control, 
@@ -145,12 +154,13 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
         }
     }
 
-    public void setBadge(Badge badge, BadgeType badgeType) {
+    public void setBadge(Badge badge, BadgeType badgeType, boolean scanned) {
         Objects.requireNonNull(badge);
         Objects.requireNonNull(badge.getBadgeId());
 
         this.badge = badge;
         this.badgeType = badgeType;
+        this.scanned = scanned;
         
         if (badgeType == BadgeType.ATTENDEE) {
             if (service.isAuthenticated() || !DevoxxSettings.USE_REMOTE_NOTES) {
@@ -173,12 +183,10 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
             email.setText(badge.getEmail());
             details.setText(badge.getDetails());
         }
+        details.textProperty().addListener(detailsChangeListener);
     }
     
     private void saveBadge() {
-        if (! textChanged || badge == null) {
-            return;
-        }
 
         badge.setFirstName(firstName.getText());
         badge.setLastName(lastName.getText());
@@ -190,8 +198,6 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
             // every scanned sponsor badge must be posted with the remote function
             service.saveSponsorBadge((SponsorBadge) badge);
         }
-
-        textChanged = false;
     }
 
 }
