@@ -40,21 +40,17 @@ import com.gluonhq.charm.glisten.control.AppBar;
 import com.gluonhq.charm.glisten.control.Dialog;
 import com.gluonhq.charm.glisten.mvc.View;
 import com.gluonhq.charm.glisten.visual.MaterialDesignIcon;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.util.Duration;
 
 import javax.inject.Inject;
 import java.util.Objects;
 
 public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
-    private static final int WAIT_TIME = 3000; // In milliseconds
 
     @FXML
     private View badgeView;
@@ -78,14 +74,12 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
     private TextArea details;
     
     private Badge badge;
-    private Timeline timer;
     private boolean textChanged;
     private boolean scanned;
     private BadgeType badgeType;
     private ChangeListener<String> detailsChangeListener = (observable, oldValue, newValue) -> {
         if (newValue != null && !newValue.isEmpty()) {
             textChanged = true;
-            timer.playFromStart();
         }
     };
 
@@ -100,20 +94,11 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
             }));
         });
         
-        timer = new Timeline();
-        timer.setCycleCount(1);
-        KeyFrame keyFrame = new KeyFrame(Duration.millis(WAIT_TIME), event -> {
-            if (textChanged && badge != null) {
-                saveBadge();
-                textChanged = false;
-            }
-        });
-        timer.getKeyFrames().add(keyFrame);
-        
         badgeView.setOnHiding(event -> {
-            if (scanned && badge != null) {
+            if (badge != null && (scanned || textChanged)) {
                 saveBadge();
             }
+            textChanged = false;
             details.textProperty().removeListener(detailsChangeListener);
         });
         
