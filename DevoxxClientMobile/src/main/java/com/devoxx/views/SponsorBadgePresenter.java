@@ -149,7 +149,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
                 badge.setDateTime(System.currentTimeMillis());
                 badges.add(badge);
                 // Keep SponsorBadgeView on view stack 
-                DevoxxView.BADGE.switchView(ViewStackPolicy.USE).ifPresent(presenter -> ((BadgePresenter) presenter).setBadge(badge, BadgeType.SPONSOR));
+                DevoxxView.BADGE.switchView(ViewStackPolicy.USE).ifPresent(presenter -> ((BadgePresenter) presenter).setBadge(badge, BadgeType.SPONSOR, true));
             }
         } else {
             Toast toast = new Toast(DevoxxBundle.getString("OTN.BADGES.BAD.QR"));
