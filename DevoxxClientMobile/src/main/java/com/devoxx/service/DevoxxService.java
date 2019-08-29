@@ -707,7 +707,7 @@ public class DevoxxService implements Service {
             for (SessionId sessionId : functionSessions.get().getFavored()) {
                 findSession(sessionId.getId()).ifPresent(internalFavoredSessions::add);
             }
-            internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions, "favored");
+            internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
             ready.set(true);
             retrievingFavoriteSessions.set(false);
             finishNotificationsPreloading();
@@ -720,31 +720,31 @@ public class DevoxxService implements Service {
         return internalFavoredSessions;
     }
 
-    private ListChangeListener<Session> initializeSessionsListener(ObservableList<Session> sessions, String functionPrefix) {
+    private ListChangeListener<Session> initializeSessionsListener(ObservableList<Session> sessions) {
         ListChangeListener<Session> listChangeListener = c -> {
             while (c.next()) {
                 if (c.wasRemoved()) {
                     for (Session session : c.getRemoved()) {
                         LOG.log(Level.INFO, "Removing Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create(functionPrefix + "Remove")
+                        RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemove")
                                 .param("0", getCfpURL())
                                 .param("1", cfpUserUuid.get())
                                 .param("2", session.getTalk().getId())
                                 .object();
                         GluonObservableObject<String> response = fnRemove.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from " + functionPrefix + ": " + response.getException().getMessage()));
+                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage()));
                     }
                 }
                 if (c.wasAdded()) {
                     for (Session session : c.getAddedSubList()) {
                         LOG.log(Level.INFO, "Adding Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create(functionPrefix + "Add")
+                        RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAdd")
                                 .param("0", getCfpURL())
                                 .param("1", cfpUserUuid.get())
                                 .param("2", session.getTalk().getId())
                                 .object();
                         GluonObservableObject<String> response = fnAdd.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to " + functionPrefix + ": " + response.getException().getMessage()));
+                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
                     }
                 }
             }
