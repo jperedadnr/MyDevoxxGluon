@@ -13,13 +13,68 @@ dependencies {
     compile 'com.amazonaws:aws-java-sdk-ses:1.11.368'
 }
 
-task buildAwsLambda(type: Zip) {
-    from compileJava
-    from processResources
+task conferenceZip(type: Zip) {
+    archiveName = "conference.zip"
+    into ('') {
+        from sourceSets.main.output
+        include "com/gluonhq/devoxx/serverless/conference/**"
+    }
     into('lib') {
         from configurations.runtime
     }
-    classifier = 'aws-lambda'
+}
+
+task conferencesZip(type: Zip) {
+    archiveName = "conferences.zip"
+    into ('') {
+        from sourceSets.main.output
+        include "com/gluonhq/devoxx/serverless/conferences/**"
+    }
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+task feedbackZip(type: Zip) {
+    archiveName = "feedback.zip"
+    into ('') {
+        from sourceSets.main.output
+        include "com/gluonhq/devoxx/serverless/feedback/**"
+    }
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+task sessionsZip(type: Zip) {
+    archiveName = "sessions.zip"
+    into ('') {
+        from sourceSets.main.output
+        include "com/gluonhq/devoxx/serverless/sessions/**"
+    }
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+task verifyaccountZip(type: Zip) {
+    archiveName = "verifyaccount.zip"
+    into ('') {
+        from sourceSets.main.output
+        include "com/gluonhq/devoxx/serverless/verifyaccount/**"
+    }
+    into('lib') {
+        from configurations.runtime
+    }
+}
+
+task buildAwsLambda {
+    dependsOn(
+            conferenceZip, conferencesZip,
+            feedbackZip, sessionsZip,
+            verifyaccountZip
+    )
 }
 
 build.dependsOn buildAwsLambda
+jar.enabled = false
