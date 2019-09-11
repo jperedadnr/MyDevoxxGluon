@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016, Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -23,16 +23,13 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.gluonhq.devoxx.serverless.retrievesessions;
+package com.gluonhq.devoxx.serverless.sessions;
 
-import javax.json.Json;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import javax.json.JsonValue;
+import javax.json.*;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.StringReader;
@@ -46,10 +43,17 @@ public class SessionsRetriever {
     private static final Logger LOGGER = Logger.getLogger(SessionsRetriever.class.getName());
 
     private static final Client client = ClientBuilder.newClient();
+    boolean oldAPI = false;
 
     public String retrieve(String cfpEndpoint, String conferenceId) throws IOException {
-        Response schedules = client.target(cfpEndpoint).path("conferences").path(conferenceId).path("schedules/")
-                .request().get();
+        WebTarget target = client.target(cfpEndpoint);
+        if (conferenceId != null) {
+            oldAPI = true;
+            target = target.path("conferences").path(conferenceId).path("schedules/");
+        } else {
+            target = target.path("schedules/");
+        }
+        Response schedules = target.request().get();
         if (schedules.getStatus() == Response.Status.OK.getStatusCode()) {
             try (JsonReader schedulesReader = Json.createReader(new StringReader(schedules.readEntity(String.class)))) {
                 List<String> dayLinks = schedulesReader.readObject().getJsonArray("links").getValuesAs(JsonObject.class).stream()
@@ -62,10 +66,16 @@ public class SessionsRetriever {
                     Response slots = client.target(dayLink).request().get();
                     if (slots.getStatus() == Response.Status.OK.getStatusCode()) {
                         try (JsonReader slotsReader = Json.createReader(new StringReader(slots.readEntity(String.class)))) {
-                            slotsReader.readObject().getJsonArray("slots").getValuesAs(JsonObject.class).stream()
-                                    .filter(slot -> (slot.containsKey("talk") && slot.get("talk").getValueType() == JsonValue.ValueType.OBJECT) ||
-                                            (slot.containsKey("break") && slot.get("break").getValueType() == JsonValue.ValueType.OBJECT))
-                                    .forEach(sessions::add);
+                            if (oldAPI) {
+                                slotsReader.readObject().getJsonArray("slots").getValuesAs(JsonObject.class).stream()
+                                        .filter(slot -> (slot.containsKey("talk") && slot.get("talk").getValueType() == JsonValue.ValueType.OBJECT) ||
+                                                (slot.containsKey("break") && slot.get("break").getValueType() == JsonValue.ValueType.OBJECT))
+                                        .forEach(sessions::add);
+                            } else {
+                                slotsReader.readArray().getValuesAs(JsonObject.class).stream()
+                                         .map(s -> updateSession(s, cfpEndpoint))
+                                         .forEach(sessions::add);
+                            }
                         }
                     } else {
                         LOGGER.log(Level.WARNING, "Failed processing link " + dayLink + ": " + slots.readEntity(String.class));
@@ -76,5 +86,31 @@ public class SessionsRetriever {
         } else {
             throw new IOException(new WebApplicationException(schedules));
         }
+    }
+
+    private JsonObject updateSession(JsonObject source, String cfpEndpoint) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+
+        builder.add("slotId", source.get("id"));
+        builder.add("roomId", source.get("roomId"));
+        builder.add("roomName", source.get("roomName"));
+        builder.add("day", "");
+        builder.add("fromTime", source.get("fromDate"));
+        builder.add("fromTimeMillis", "");
+        builder.add("toTime", source.get("toDate"));
+        builder.add("toTimeMillis", "");
+        builder.add("aBreak", "");
+
+        final JsonValue talkId = source.get("talkId");
+        if (talkId != null && !talkId.toString().equalsIgnoreCase("null")) {
+            Response talk = client.target(cfpEndpoint).path("talks").path(talkId.toString()).request().get();
+            if (talk.getStatus() == Response.Status.OK.getStatusCode()) {
+                try (JsonReader talkReader = Json.createReader(new StringReader(talk.readEntity(String.class)))) {
+                    builder.add("talk", talkReader.readObject());
+                }
+            }
+        }
+        
+        return builder.build();
     }
 }
