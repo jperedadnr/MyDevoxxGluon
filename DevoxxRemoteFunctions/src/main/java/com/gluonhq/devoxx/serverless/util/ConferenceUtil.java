@@ -30,8 +30,55 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 public class ConferenceUtil {
+    
+    public static JsonObject createCleanResponseForClientFromNewEndpoint(JsonObject conf) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("id",               conf.getInt("id", 0));
+        builder.add("name",             conf.getString("name", ""));
+        builder.add("website",          conf.getString("website", ""));
+        builder.add("description",      conf.getString("description", ""));
+        builder.add("imageURL",         conf.getString("imageURL", ""));
+        builder.add("scheduleURL",      conf.getString("scheduleURL", ""));
+        builder.add("eventImagesURL",   conf.getString("eventImageURL", ""));
+        builder.add("youTubeURL",       conf.getString("youTubeURL", ""));
+        builder.add("fromDate",         conf.getString("fromDate").substring(0, 10));
+        builder.add("endDate",          conf.getString("toDate").substring(0, 10));
+        builder.add("fromDateTime",     conf.getString("fromDate"));
+        builder.add("endDateTime",      conf.getString("toDate"));
+        if (conf.containsKey("days")) {
+            builder.add("days", conf.getJsonArray("days"));
+        }
+        builder.add("cfpFromDate",      conf.getString("cfpOpening", ""));
+        builder.add("cfpEndDate",       conf.getString("cfpClosing", ""));
+        builder.add("eventType",        conf.getString("eventType", ""));
+        builder.add("cfpURL",           conf.getString("apiURL", ""));
+        builder.add("cfpVersion",       conf.getString("cfpVersion", ""));
+        builder.add("archived",         conf.getBoolean("archived", true));
+        builder.add("cfpActive",        conf.getBoolean("live", false));
+        builder.add("locationId",       conf.getInt("locationId", 0));
+        builder.add("timezone",         conf.getString("timezone", ""));
+        builder.add("cfpAdminEmail",    conf.getString("cfpAdminEmail", ""));
+        builder.add("maxProposals",     conf.getString("maxProposals", ""));
+        builder.add("myBadgeActive",    conf.getBoolean("myBadgeActive", false));
+        if (conf.containsKey("owners")) {
+            builder.add("owners", conf.getJsonArray("owners"));
+        }
+        if (conf.containsKey("tracks")) {
+            builder.add("tracks", conf.getJsonArray("tracks"));
+        }
+        if (conf.containsKey("sessionTypes")) {
+            builder.add("sessionTypes", conf.getJsonArray("sessionTypes"));
+        }
+        if (conf.containsKey("languages")) {
+            builder.add("languages", conf.getJsonArray("languages"));
+        }
+        if (conf.containsKey("floorPlans")) {
+            builder.add("floorPlans", conf.getJsonArray("floorPlans"));
+        }
+        return builder.build();
+    }
 
-    public static JsonObject makeBackwardCompatible(JsonObject conf) {
+    public static JsonObject createCleanResponseForClientFromOldEndpoint(JsonObject conf) {
         if (conf.containsKey("fromDate")) {
             String fromDate = conf.getString("fromDate");
             conf = enrich(conf, "fromDate", "fromDate", fromDate.substring(0, 10));
@@ -60,5 +107,9 @@ public class ConferenceUtil {
         source.entrySet().stream().filter(entry -> !entry.getKey().equals(sourceKey)).forEach(entry -> builder.add(entry.getKey(), entry.getValue()));
         builder.add(key, value);
         return builder.build();
+    }
+    
+    public static boolean isNewCfpURL(String cfp) {
+        return cfp.matches(".+?(?=.cfp.dev)(.*)");
     }
 }
