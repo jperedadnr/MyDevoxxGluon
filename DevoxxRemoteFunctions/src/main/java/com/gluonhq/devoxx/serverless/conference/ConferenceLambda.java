@@ -27,6 +27,7 @@ package com.gluonhq.devoxx.serverless.conference;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
+import com.gluonhq.devoxx.serverless.util.ConferenceUtil;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -36,9 +37,9 @@ import java.nio.charset.StandardCharsets;
 
 public class ConferenceLambda implements RequestStreamHandler {
 
-    private static final String ID_OLD = "\"46\"";
+    private static final String ID_OLD = "\"65\"";
     private static final String CFP_ENDPOINT_OLD = "https://www.devoxxians.com/api/public/events/";
-    private static final String CFP_ENDPOINT_NEW = "https://dvbe19.cfp.dev/api/";
+    private static final String CFP_ENDPOINT_NEW = "https://vxdms2019.cfp.dev/api/";
 
     @Override
     public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
@@ -48,6 +49,9 @@ public class ConferenceLambda implements RequestStreamHandler {
             JsonObject jsonInput = reader.readObject();
             id = jsonInput.isNull("id") ? null : jsonInput.getString("id");
             cfpEndpoint = jsonInput.getString("cfpEndpoint");
+            if (cfpEndpoint != null && !ConferenceUtil.isNewCfpURL(cfpEndpoint)) {
+                cfpEndpoint = CFP_ENDPOINT_OLD;
+            }
         }
         String jsonOutput = new ConferenceRetriever().retrieve(cfpEndpoint, id);
         try (Writer writer = new OutputStreamWriter(output)) {
