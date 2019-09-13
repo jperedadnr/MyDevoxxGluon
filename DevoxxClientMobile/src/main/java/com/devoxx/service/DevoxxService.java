@@ -230,9 +230,10 @@ public class DevoxxService implements Service {
 
         Services.get(SettingsService.class).ifPresent(settingsService -> {
             String configuredConferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
+            String configuredConferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
             if (configuredConferenceId != null) {
                 if (isNumber(configuredConferenceId)) {
-                    retrieveConference(configuredConferenceId);
+                    retrieveConference(configuredConferenceId, configuredConferenceCfpURL);
                 } else {
                     LOG.log(Level.WARNING, "Found old conference id format, removing it");
                     clearCfpAccount();
@@ -362,7 +363,7 @@ public class DevoxxService implements Service {
     }
 
     @Override
-    public GluonObservableObject<Conference> retrieveConference(String conferenceId) {
+    public GluonObservableObject<Conference> retrieveConference(String conferenceId, String cfpURL) {
         RemoteFunctionObject fnConference = RemoteFunctionBuilder.create("conference")
                 .param("id", conferenceId)
                 .object();
@@ -375,6 +376,9 @@ public class DevoxxService implements Service {
         } else {
             conference.setOnSucceeded(e -> {
                 if (conference.get() != null) {
+                    // cfpURL is no longer a part of conference
+                    // we need to manually set it
+                    conference.get().setCfpURL(cfpURL);
                     setConference(conference.get());
                     ready.set(true);
                 }
@@ -480,7 +484,7 @@ public class DevoxxService implements Service {
             retrievingSessions.set(false);
             sessionsList.removeListener(sessionsListChangeListener);
             ConferenceLoadingLayer.hide(getConference());
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sessions"), e.getSource().getException());
+            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sessionsV2"), e.getSource().getException());
         });
         sessionsList.setOnSucceeded(e -> {
             retrievingSessions.set(false);
@@ -558,6 +562,11 @@ public class DevoxxService implements Service {
     private String getCfpURL() {
         final String cfpURL = getConference().getCfpURL();
         if (cfpURL == null) return "";
+        if (isNewCfpURL(cfpURL)) {
+            return cfpURL;
+        }
+        
+        // OLD URL
         if (cfpURL.endsWith("/api/")) {
             return cfpURL.substring(0, cfpURL.length() - 1);
         }
@@ -568,6 +577,10 @@ public class DevoxxService implements Service {
             return cfpURL + "api";
         }
         return cfpURL + "/api";
+    }
+
+    private boolean isNewCfpURL(String cfp) {
+        return cfp.matches(".+?(?=.cfp.dev)(.*)");
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {

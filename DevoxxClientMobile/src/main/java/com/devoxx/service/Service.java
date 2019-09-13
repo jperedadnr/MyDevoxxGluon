@@ -77,7 +77,7 @@ public interface Service {
      *
      * @return A conference object
      */
-    GluonObservableObject<Conference> retrieveConference(String conferenceId);
+    GluonObservableObject<Conference> retrieveConference(String conferenceId, String cfpURL);
 
     /**
      * Sets the selected conference.

@@ -33,7 +33,6 @@ import com.devoxx.service.Service;
 import com.devoxx.util.DevoxxBundle;
 import com.devoxx.util.DevoxxSettings;
 import com.devoxx.views.SessionPresenter;
-import com.devoxx.views.helper.SessionTrack;
 import com.devoxx.views.helper.SessionVisuals;
 import com.gluonhq.charm.glisten.control.CharmListCell;
 import com.gluonhq.charm.glisten.control.ListTile;
@@ -159,7 +158,7 @@ public class ScheduleCell extends CharmListCell<Session> {
 
     private void updateSessionType() {
         if (showSessionType) {
-            if (session.isShowSessionType()) {
+            if (session.isShowSessionType() && session.getTalk() != null) {
                 sessionTypeLabel.setText(session.getTalk().getTalkType());
                 borderPane.setTop(sessionType);
             } else {

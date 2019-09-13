@@ -129,6 +129,7 @@ public class AboutPresenter extends GluonPresenter<DevoxxApplication> {
 
         Services.get(SettingsService.class).ifPresent(settingsService -> {
             debug.append(settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID)).append("\n");
+            debug.append(settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL)).append("\n");
             debug.append(settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME)).append("\n");
             debug.append(settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_TYPE)).append("\n");
             debug.append(settingsService.retrieve(DevoxxSettings.SAVED_ACCOUNT_ID)).append("\n");

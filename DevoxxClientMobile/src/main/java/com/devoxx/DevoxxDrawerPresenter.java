@@ -114,7 +114,7 @@ public class DevoxxDrawerPresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     private void checkAndUpdateItems() {
-        if (service.getConference().getFloorPlans().size() == 0) {
+        if (service.getConference().getFloorPlans() != null && service.getConference().getFloorPlans().size() == 0) {
             drawer.getItems().remove(DevoxxView.EXHIBITION_MAPS.getMenuItem());
         } else {
             if (!drawer.getItems().contains(DevoxxView.EXHIBITION_MAPS.getMenuItem())) {
