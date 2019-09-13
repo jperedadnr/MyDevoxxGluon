@@ -26,6 +26,7 @@
 package com.gluonhq.devoxx.serverless.util;
 
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
@@ -50,7 +51,7 @@ public class ConferenceUtil {
         }
         builder.add("cfpFromDate",      conf.getString("cfpOpening", ""));
         builder.add("cfpEndDate",       conf.getString("cfpClosing", ""));
-        builder.add("eventType",        conf.getString("eventType", ""));
+        builder.add("eventType",        conf.getString("theme", ""));
         builder.add("cfpURL",           conf.getString("apiURL", ""));
         builder.add("cfpVersion",       conf.getString("cfpVersion", ""));
         builder.add("archived",         conf.getBoolean("archived", true));
@@ -60,22 +61,21 @@ public class ConferenceUtil {
         builder.add("cfpAdminEmail",    conf.getString("cfpAdminEmail", ""));
         builder.add("maxProposals",     conf.getString("maxProposals", ""));
         builder.add("myBadgeActive",    conf.getBoolean("myBadgeActive", false));
-        if (conf.containsKey("owners")) {
-            builder.add("owners", conf.getJsonArray("owners"));
-        }
-        if (conf.containsKey("tracks")) {
-            builder.add("tracks", conf.getJsonArray("tracks"));
-        }
-        if (conf.containsKey("sessionTypes")) {
-            builder.add("sessionTypes", conf.getJsonArray("sessionTypes"));
-        }
-        if (conf.containsKey("languages")) {
-            builder.add("languages", conf.getJsonArray("languages"));
-        }
-        if (conf.containsKey("floorPlans")) {
-            builder.add("floorPlans", conf.getJsonArray("floorPlans"));
-        }
+        builder.add("owners",
+                conf.containsKey("owners") ? conf.getJsonArray("owners") : emptyJsonArray());
+        builder.add("tracks",
+                conf.containsKey("tracks") ? conf.getJsonArray("tracks") : emptyJsonArray());
+        builder.add("sessionTypes",
+                conf.containsKey("sessionTypes") ? conf.getJsonArray("sessionTypes") : emptyJsonArray());
+        builder.add("languages",
+                conf.containsKey("languages") ? conf.getJsonArray("languages") : emptyJsonArray());
+        builder.add("floorPlans", 
+                conf.containsKey("floorPlans") ? conf.getJsonArray("floorPlans") : emptyJsonArray());
         return builder.build();
+    }
+
+    private static JsonArray emptyJsonArray() {
+        return Json.createArrayBuilder().build();
     }
 
     public static JsonObject createCleanResponseForClientFromOldEndpoint(JsonObject conf) {
