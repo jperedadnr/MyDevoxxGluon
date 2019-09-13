@@ -18,6 +18,7 @@ task conferenceZip(type: Zip) {
     into ('') {
         from sourceSets.main.output
         include "com/gluonhq/devoxx/serverless/conference/**"
+        include "com/gluonhq/devoxx/serverless/util/**"
     }
     into('lib') {
         from configurations.runtime
@@ -29,6 +30,7 @@ task conferencesZip(type: Zip) {
     into ('') {
         from sourceSets.main.output
         include "com/gluonhq/devoxx/serverless/conferences/**"
+        include "com/gluonhq/devoxx/serverless/util/**"
     }
     into('lib') {
         from configurations.runtime
@@ -51,6 +53,7 @@ task sessionsZip(type: Zip) {
     into ('') {
         from sourceSets.main.output
         include "com/gluonhq/devoxx/serverless/sessions/**"
+        include "com/gluonhq/devoxx/serverless/util/**"
     }
     into('lib') {
         from configurations.runtime
