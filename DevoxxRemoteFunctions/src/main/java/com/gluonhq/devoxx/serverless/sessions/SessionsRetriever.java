@@ -38,20 +38,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static com.gluonhq.devoxx.serverless.util.ConferenceUtil.isNewCfpURL;
+
 public class SessionsRetriever {
 
     private static final Logger LOGGER = Logger.getLogger(SessionsRetriever.class.getName());
 
     private static final Client client = ClientBuilder.newClient();
-    boolean oldAPI = false;
+    private static JsonArray talks = null;
 
     public String retrieve(String cfpEndpoint, String conferenceId) throws IOException {
         WebTarget target = client.target(cfpEndpoint);
-        if (conferenceId != null) {
-            oldAPI = true;
-            target = target.path("conferences").path(conferenceId).path("schedules/");
+        if (isNewCfpURL(cfpEndpoint)) {
+            target = target.path("public").path("schedules/");
         } else {
-            target = target.path("schedules/");
+            target = target.path("conferences").path(conferenceId).path("schedules/");
         }
         Response schedules = target.request().get();
         if (schedules.getStatus() == Response.Status.OK.getStatusCode()) {
@@ -66,15 +67,17 @@ public class SessionsRetriever {
                     Response slots = client.target(dayLink).request().get();
                     if (slots.getStatus() == Response.Status.OK.getStatusCode()) {
                         try (JsonReader slotsReader = Json.createReader(new StringReader(slots.readEntity(String.class)))) {
-                            if (oldAPI) {
+                            if (isNewCfpURL(cfpEndpoint)) {
+                                LOGGER.log(Level.INFO, "New API");
+                                slotsReader.readArray().getValuesAs(JsonObject.class).stream()
+                                        .map(s -> updateSession(s, cfpEndpoint))
+                                        .forEach(sessions::add);
+                            } else {
+                                LOGGER.log(Level.INFO, "Old API");
                                 slotsReader.readObject().getJsonArray("slots").getValuesAs(JsonObject.class).stream()
                                         .filter(slot -> (slot.containsKey("talk") && slot.get("talk").getValueType() == JsonValue.ValueType.OBJECT) ||
                                                 (slot.containsKey("break") && slot.get("break").getValueType() == JsonValue.ValueType.OBJECT))
                                         .forEach(sessions::add);
-                            } else {
-                                slotsReader.readArray().getValuesAs(JsonObject.class).stream()
-                                         .map(s -> updateSession(s, cfpEndpoint))
-                                         .forEach(sessions::add);
                             }
                         }
                     } else {
@@ -90,27 +93,56 @@ public class SessionsRetriever {
 
     private JsonObject updateSession(JsonObject source, String cfpEndpoint) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("slotId",         source.get("id"));
+        builder.add("roomId",         source.get("roomId"));
+        builder.add("roomName",       source.get("roomName"));
+        builder.add("day",       "");
+        builder.add("fromTime",       source.get("fromDate"));
+        builder.add("toTime",         source.get("toDate"));
+        builder.add("aBreak",    "");
 
-        builder.add("slotId", source.get("id"));
-        builder.add("roomId", source.get("roomId"));
-        builder.add("roomName", source.get("roomName"));
-        builder.add("day", "");
-        builder.add("fromTime", source.get("fromDate"));
-        builder.add("fromTimeMillis", "");
-        builder.add("toTime", source.get("toDate"));
-        builder.add("toTimeMillis", "");
-        builder.add("aBreak", "");
+        final int talkId = source.getInt("talkId", 0);
+        if (talkId != 0) {
+            JsonObject talk = fetchTalk(cfpEndpoint, talkId);
+            builder.add("talk", talk == JsonValue.EMPTY_JSON_OBJECT ? JsonValue.NULL : talk);
+        }
+        return builder.build();
+    }
 
-        final JsonValue talkId = source.get("talkId");
-        if (talkId != null && !talkId.toString().equalsIgnoreCase("null")) {
-            Response talk = client.target(cfpEndpoint).path("talks").path(talkId.toString()).request().get();
-            if (talk.getStatus() == Response.Status.OK.getStatusCode()) {
-                try (JsonReader talkReader = Json.createReader(new StringReader(talk.readEntity(String.class)))) {
-                    builder.add("talk", talkReader.readObject());
+    private JsonObject fetchTalk(String cfpEndpoint, int talkId) {
+        if (talks == null) {
+            final Response response = client.target(cfpEndpoint).path("public").path("talks").request().get();
+            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
+                try (JsonReader talksReader = Json.createReader(new StringReader(response.readEntity(String.class)))) {
+                    talks = talksReader.readArray();
                 }
             }
         }
-        
+        return talks.getValuesAs(JsonObject.class).stream()
+                .filter(t -> t.getInt("id", 0) == talkId)
+                .map(t -> updateTalk(t))
+                .findFirst().orElse(JsonValue.EMPTY_JSON_OBJECT);
+    }
+
+    private JsonObject updateTalk(JsonObject source) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("id",            source.get("id"));
+        builder.add("title",         source.get("title"));
+        builder.add("talkType",      source.get("sessionTypeName"));
+        builder.add("track",         source.get("trackName"));
+        builder.add("trackId",       source.get("trackId"));
+        builder.add("lang",          "");
+        builder.add("audienceLevel", "");
+        builder.add("summary",       source.get("description"));
+        builder.add("summaryAsHtml", "");
+        builder.add("tags",
+                source.containsKey("tags") ? source.getJsonArray("tags") : emptyJsonArray());
+        builder.add("speakers",
+                source.containsKey("speakers") ? source.getJsonArray("speakers") : emptyJsonArray());
         return builder.build();
+    }
+
+    private JsonArray emptyJsonArray() {
+        return Json.createArrayBuilder().build();
     }
 }
