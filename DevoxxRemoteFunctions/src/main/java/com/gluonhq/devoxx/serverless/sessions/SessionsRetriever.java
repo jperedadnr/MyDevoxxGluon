@@ -26,6 +26,7 @@
 package com.gluonhq.devoxx.serverless.sessions;
 
 import javax.json.*;
+import javax.json.stream.JsonCollectors;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -33,7 +34,9 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -46,8 +49,10 @@ public class SessionsRetriever {
 
     private static final Client client = ClientBuilder.newClient();
     private static JsonArray talks = null;
+    private String cfpEndpoint;
 
     public String retrieve(String cfpEndpoint, String conferenceId) throws IOException {
+        this.cfpEndpoint = cfpEndpoint;
         WebTarget target = client.target(cfpEndpoint);
         if (isNewCfpURL(cfpEndpoint)) {
             target = target.path("public").path("schedules/");
@@ -138,7 +143,29 @@ public class SessionsRetriever {
         builder.add("tags",
                 source.containsKey("tags") ? source.getJsonArray("tags") : emptyJsonArray());
         builder.add("speakers",
-                source.containsKey("speakers") ? source.getJsonArray("speakers") : emptyJsonArray());
+                source.containsKey("speakers") ? updateSpeakers(source.getJsonArray("speakers")) : emptyJsonArray());
+        return builder.build();
+    }
+
+    private JsonArray updateSpeakers(JsonArray speakers) {
+        return speakers.getValuesAs(JsonObject.class).stream()
+                .map(s -> updateSpeaker(s))
+                .collect(JsonCollectors.toJsonArray());
+    }
+
+    private JsonObject updateSpeaker(JsonObject source) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        final int id = source.getInt("id");
+        final String name = source.getString("firstName") + 
+                            " " + 
+                            source.getString("lastName");
+        Map<String, Object> link = new HashMap<>();
+        link.put("href", cfpEndpoint + "public" + "/speakers/" + id);
+        link.put("rel", cfpEndpoint + "public" + "/speakers/");
+        link.put("uuid", id);
+        link.put("title", name);
+        builder.add("name", name);
+        builder.add("link", Json.createObjectBuilder(link));
         return builder.build();
     }
 
