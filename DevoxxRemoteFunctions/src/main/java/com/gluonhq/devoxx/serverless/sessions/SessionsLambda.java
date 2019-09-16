@@ -50,7 +50,8 @@ public class SessionsLambda implements RequestStreamHandler {
         String conferenceId, cfpEndpoint;
         try (JsonReader reader = Json.createReader(input)) {
             JsonObject jsonInput = reader.readObject();
-            conferenceId = jsonInput.containsKey("conferenceId") ? jsonInput.getString("conferenceId") : null;
+            conferenceId = jsonInput.containsKey("conferenceId") && !jsonInput.isNull("conferenceId") ? 
+                    jsonInput.getString("conferenceId") : null;
             cfpEndpoint = jsonInput.getString("cfpEndpoint");
             String jsonOutput = new SessionsRetriever().retrieve(cfpEndpoint, conferenceId);
             try (Writer writer = new OutputStreamWriter(output)) {

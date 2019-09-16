@@ -47,7 +47,7 @@ public class ConferenceLambda implements RequestStreamHandler {
 
         try (JsonReader reader = Json.createReader(input)) {
             JsonObject jsonInput = reader.readObject();
-            id = jsonInput.isNull("id") ? null : jsonInput.getString("id");
+            id = jsonInput.containsKey("id") && !jsonInput.isNull("id") ? jsonInput.getString("id") : null;
             cfpEndpoint = jsonInput.getString("cfpEndpoint");
             if (cfpEndpoint != null && !ConferenceUtil.isNewCfpURL(cfpEndpoint)) {
                 cfpEndpoint = CFP_ENDPOINT_OLD;
