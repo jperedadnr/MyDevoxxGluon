@@ -61,6 +61,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.Button;
 
+import javax.json.JsonObject;
 import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -79,6 +80,8 @@ import java.util.logging.Logger;
 
 import static com.devoxx.util.DevoxxSettings.LOCAL_NOTIFICATION_RATING;
 import static com.devoxx.util.DevoxxSettings.SESSION_FILTER;
+import static com.devoxx.util.JsonToObject.toSpeaker;
+import static com.devoxx.util.JsonToObject.toSpeakers;
 import static com.devoxx.views.helper.Util.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -511,20 +514,37 @@ public class DevoxxService implements Service {
 
         speakers.clear();
 
-        RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakers")
-                .param("cfpEndpoint", getCfpURL())
-                .param("conferenceId", getConference().getId())
-                .list();
+        if (isNewCfpURL(getCfpURL())) {
+            RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakersV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .list();
+            
+            GluonObservableList<JsonObject> speakersList = fnSpeakers.call(JsonObject.class);
+            speakersList.setOnFailed(e -> {
+                retrievingSpeakers.set(false);
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakersV2"), e.getSource().getException());
+            });
+            speakersList.setOnSucceeded(e -> {
+                speakers.setAll(toSpeakers(speakersList));
+                retrievingSpeakers.set(false);
+            });
+            
+        } else {
+            RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakers")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("conferenceId", getConference().getId())
+                    .list();
 
-        GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
-        speakersList.setOnFailed(e -> {
-            retrievingSpeakers.set(false);
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
-        });
-        speakersList.setOnSucceeded(e -> {
-            speakers.setAll(speakersList);
-            retrievingSpeakers.set(false);
-        });
+            GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
+            speakersList.setOnFailed(e -> {
+                retrievingSpeakers.set(false);
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
+            });
+            speakersList.setOnSucceeded(e -> {
+                speakers.setAll(speakersList);
+                retrievingSpeakers.set(false);
+            });
+        }
     }
 
     @Override
@@ -541,18 +561,33 @@ public class DevoxxService implements Service {
             if (speakerWithUuid.isDetailsRetrieved()) {
                 return new ReadOnlyObjectWrapper<>(speakerWithUuid).getReadOnlyProperty();
             } else {
-                RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
-                        .param("cfpEndpoint", getCfpURL())
-                        .param("conferenceId", getConference().getId())
-                        .param("uuid", uuid)
-                        .object();
+                if (isNewCfpURL(getCfpURL())) {
+                    RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speakerV2")
+                            .param("cfpEndpoint", getCfpURL())
+                            .param("id", uuid)
+                            .object();
 
-                GluonObservableObject<Speaker> gluonSpeaker = fnSpeaker.call(Speaker.class);
-                gluonSpeaker.setOnSucceeded(e -> {
-                    updateSpeakerDetails(gluonSpeaker.get());
-                });
-                gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
-                return gluonSpeaker;
+                    GluonObservableObject<JsonObject> gluonSpeaker = fnSpeaker.call(JsonObject.class);
+                    gluonSpeaker.setOnFailed(e -> {
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
+                    });
+                    gluonSpeaker.setOnSucceeded(e -> {
+                        updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                    });
+                } else {
+                    RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
+                            .param("cfpEndpoint", getCfpURL())
+                            .param("conferenceId", getConference().getId())
+                            .param("uuid", uuid)
+                            .object();
+
+                    GluonObservableObject<Speaker> gluonSpeaker = fnSpeaker.call(Speaker.class);
+                    gluonSpeaker.setOnSucceeded(e -> {
+                        updateSpeakerDetails(gluonSpeaker.get());
+                    });
+                    gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
+                    return gluonSpeaker;
+                }
             }
         }
 
