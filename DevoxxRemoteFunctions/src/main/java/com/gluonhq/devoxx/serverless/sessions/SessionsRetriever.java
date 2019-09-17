@@ -34,6 +34,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,8 @@ public class SessionsRetriever {
                                 LOGGER.log(Level.INFO, "New API");
                                 slotsReader.readArray().getValuesAs(JsonObject.class).stream()
                                         .map(s -> updateSession(s, cfpEndpoint))
+                                        .filter(s -> (s.containsKey("talk") && !s.isNull("talk")) ||
+                                                s.containsKey("break") && !s.isNull("break"))
                                         .forEach(sessions::add);
                             } else {
                                 LOGGER.log(Level.INFO, "Old API");
@@ -103,18 +106,45 @@ public class SessionsRetriever {
         builder.add("roomName",       source.get("roomName"));
         builder.add("day",       "");
         builder.add("fromTime",       source.get("fromDate"));
+        builder.add("fromTimeMillis", ZonedDateTime.parse(source.getString("fromDate")).toInstant().toEpochMilli());
         builder.add("toTime",         source.get("toDate"));
-        builder.add("aBreak",    "");
+        builder.add("toTimeMillis",   ZonedDateTime.parse(source.getString("toDate")).toInstant().toEpochMilli());
+
+        final boolean aBreak = source.getBoolean("sessionTypeBreak");
+        builder.add("break", aBreak ? fetchBreak(source) : JsonValue.NULL);
 
         final int talkId = source.getInt("talkId", 0);
         if (talkId != 0) {
-            JsonObject talk = fetchTalk(cfpEndpoint, talkId);
+            JsonObject talk = fetchTalk(cfpEndpoint, source);
             builder.add("talk", talk == JsonValue.EMPTY_JSON_OBJECT ? JsonValue.NULL : talk);
         }
         return builder.build();
     }
 
-    private JsonObject fetchTalk(String cfpEndpoint, int talkId) {
+    private JsonObject fetchBreak(JsonObject source) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("id",        String.valueOf(source.get("sessionTypeId")));
+        builder.add("nameEN",    source.get("sessionTypeName"));
+        builder.add("nameFR",    source.get("sessionTypeName"));
+        builder.add("room",      source.isNull("roomName") ? null : fetchRoom(source));
+        builder.add("dayName",   ZonedDateTime.parse(source.getString("fromDate")).getDayOfWeek().toString());
+        builder.add("startTime", ZonedDateTime.parse(source.getString("fromDate")).toInstant().toEpochMilli());
+        builder.add("endTime",   ZonedDateTime.parse(source.getString("toDate")).toInstant().toEpochMilli());
+        return builder.build();
+    }
+
+    private JsonValue fetchRoom(JsonObject source) {
+        final String roomName = source.getString("roomName");
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("id", String.valueOf(source.getInt("roomId")));
+        builder.add("name", roomName);
+        builder.add("capacity", 0);
+        builder.add("setup", "");
+        builder.add("recorded", "");
+        return builder.build();
+    }
+
+    private JsonObject fetchTalk(String cfpEndpoint, JsonObject session) {
         if (talks == null) {
             final Response response = client.target(cfpEndpoint).path("public").path("talks").request().get();
             if (response.getStatus() == Response.Status.OK.getStatusCode()) {
@@ -124,16 +154,16 @@ public class SessionsRetriever {
             }
         }
         return talks.getValuesAs(JsonObject.class).stream()
-                .filter(t -> t.getInt("id", 0) == talkId)
-                .map(t -> updateTalk(t))
+                .filter(t -> t.getInt("id", 0) == session.getInt("talkId"))
+                .map(t -> updateTalk(t, session.getString("sessionTypeName")))
                 .findFirst().orElse(JsonValue.EMPTY_JSON_OBJECT);
     }
 
-    private JsonObject updateTalk(JsonObject source) {
+    private JsonObject updateTalk(JsonObject source, String sessionTypeName) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("id",            source.get("id"));
         builder.add("title",         source.get("title"));
-        builder.add("talkType",      source.get("sessionTypeName"));
+        builder.add("talkType",      sessionTypeName);
         builder.add("track",         source.get("trackName"));
         builder.add("trackId",       source.get("trackId"));
         builder.add("lang",          "");
@@ -160,10 +190,11 @@ public class SessionsRetriever {
                             " " + 
                             source.getString("lastName");
         Map<String, Object> link = new HashMap<>();
-        link.put("href", cfpEndpoint + "public" + "/speakers/" + id);
-        link.put("rel", cfpEndpoint + "public" + "/speakers/");
-        link.put("uuid", id);
+        link.put("href",  cfpEndpoint + "public" + "/speakers/" + id);
+        link.put("rel",   cfpEndpoint + "public" + "/speakers/");
+        link.put("uuid",  id);
         link.put("title", name);
+
         builder.add("name", name);
         builder.add("link", Json.createObjectBuilder(link));
         return builder.build();
