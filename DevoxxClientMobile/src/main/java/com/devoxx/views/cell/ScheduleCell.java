@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018, Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -170,11 +170,11 @@ public class ScheduleCell extends CharmListCell<Session> {
     private void updateListTile() {
         if (session.getTalk() != null) {
             if (session.getTalk().getTrack() != null) {
-                final String trackId = session.getTalk().getTrackId().toUpperCase();
-                trackLabel.setText(trackId);
-                changePseudoClass(fetchPseudoClassForTrack(trackId));
+                final String track = session.getTalk().getTrack().toUpperCase();
+                trackLabel.setText(track);
+                changePseudoClass(fetchPseudoClassForTrack(track));
             }
-            
+
             if (session.getTalk().getTitle() != null) {
                 listTile.setTextLine(0, session.getTalk().getTitle());
             }
@@ -197,14 +197,13 @@ public class ScheduleCell extends CharmListCell<Session> {
             label.setGraphic(null);
             changePseudoClass(PSEUDO_CLASS_BREAK);
         }
-        
+
         if (showDate) {
             initializeStartLabel();
             startDateLabel.setText(DevoxxSettings.DATE_FORMATTER.format(session.getStartDate()));
             // Hacky Code as it uses internals of ListTile
             ((VBox) listTile.getChildren().get(0)).getChildren().add(startDateLabel);
         }
-
         pseudoClassStateChanged(PSEUDO_CLASS_COLORED, session.isDecorated());
     }
 
