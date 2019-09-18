@@ -81,6 +81,10 @@
         </dict>  
         <key>NSCameraUsageDescription</key>
         <string>Barscan requires access to the Camera Service</string>
+        <key>NSBluetoothAlwaysUsageDescription</key>
+        <string>Not used by this app</string>
+        <key>NSBluetoothPeripheralUsageDescription</key>
+        <string>Not used by this app</string>
     <key>UILaunchImages</key>
     <array>
     <dict>
