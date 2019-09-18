@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016, Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -23,7 +23,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.gluonhq.devoxx.serverless.retrievesessions;
+package com.gluonhq.devoxx.serverless.sessions;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
@@ -42,11 +42,17 @@ import java.nio.charset.StandardCharsets;
 
 public class SessionsLambda implements RequestStreamHandler {
 
+    private static final String CONFERENCE_ID_OLD = "\"65\"";
+    private static final String CFP_ENDPOINT_OLD = "https://vxdbanff19.confinabox.com/api";
+    private static final String CFP_ENDPOINT_NEW = "https://vxdms2019.cfp.dev/api/";
+
     public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
+        String conferenceId, cfpEndpoint;
         try (JsonReader reader = Json.createReader(input)) {
             JsonObject jsonInput = reader.readObject();
-            String cfpEndpoint = jsonInput.getString("cfpEndpoint");
-            String conferenceId = jsonInput.getString("conferenceId");
+            conferenceId = jsonInput.containsKey("conferenceId") && !jsonInput.isNull("conferenceId") ? 
+                    jsonInput.getString("conferenceId") : null;
+            cfpEndpoint = jsonInput.getString("cfpEndpoint");
             String jsonOutput = new SessionsRetriever().retrieve(cfpEndpoint, conferenceId);
             try (Writer writer = new OutputStreamWriter(output)) {
                 writer.write(jsonOutput);
@@ -55,7 +61,8 @@ public class SessionsLambda implements RequestStreamHandler {
     }
 
     public static void main(String[] args) throws IOException {
-        InputStream input = new ByteArrayInputStream("{\"cfpEndpoint\":\"https://dvbe18.confinabox.com/api\",\"conferenceId\":\"dvbe18\"}".getBytes(StandardCharsets.UTF_8));
+        final String json = String.format("{\"cfpEndpoint\":\"%s\", \"conferenceId\":%s}", CFP_ENDPOINT_NEW, null); // Replace with CFP_ENDPOINT_NEW and null 
+        InputStream input = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         new SessionsLambda().handleRequest(input, output, null);
         System.out.println("output = " + new String(output.toByteArray(), StandardCharsets.UTF_8));

@@ -34,7 +34,6 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.StringReader;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,7 +52,7 @@ class ConferencesRetriever {
             try (JsonReader conferencesReader = Json.createReader(new StringReader(conferences.readEntity(String.class)))) {
                 return conferencesReader.readArray().stream()
                         .map(conf -> (JsonObject) conf)
-                        .map(ConferenceUtil::makeBackwardCompatible)
+                        .map(ConferenceUtil::createCleanResponseForClientFromOldEndpoint)
                         .collect(JsonCollectors.toJsonArray()).toString();
             }
         } else {

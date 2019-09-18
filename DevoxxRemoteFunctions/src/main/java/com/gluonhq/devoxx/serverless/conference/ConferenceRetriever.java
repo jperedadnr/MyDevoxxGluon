@@ -25,16 +25,17 @@
  */
 package com.gluonhq.devoxx.serverless.conference;
 
-import com.gluonhq.devoxx.serverless.util.ConferenceUtil;
-
 import javax.json.Json;
 import javax.json.JsonReader;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 import java.io.StringReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static com.gluonhq.devoxx.serverless.util.ConferenceUtil.*;
 
 public class ConferenceRetriever {
 
@@ -44,10 +45,20 @@ public class ConferenceRetriever {
 
     public String retrieve(String cfpEndpoint, String id) {
 
-        Response conferences = client.target(cfpEndpoint).path(id).request().get();
+        WebTarget target = client.target(cfpEndpoint);
+        if (isNewCfpURL(cfpEndpoint)) {
+            target = target.path("public").path("event");
+        } else {
+            target = target.path(id);
+        }
+        Response conferences = target.request().get();
         if (conferences.getStatus() == Response.Status.OK.getStatusCode()) {
             try (JsonReader conferenceReader = Json.createReader(new StringReader(conferences.readEntity(String.class)))) {
-                return ConferenceUtil.makeBackwardCompatible(conferenceReader.readObject()).toString();
+                if (isNewCfpURL(cfpEndpoint)) {
+                    return createCleanResponseForClientFromNewEndpoint(conferenceReader.readObject()).toString();
+                } else {
+                    return createCleanResponseForClientFromOldEndpoint(conferenceReader.readObject()).toString();
+                }
             }
         } else {
             LOGGER.log(Level.WARNING, "Retrieval of conferences failed with", conferences.getStatus());

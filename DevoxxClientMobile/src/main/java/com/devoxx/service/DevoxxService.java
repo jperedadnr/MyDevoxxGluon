@@ -61,6 +61,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.scene.control.Button;
 
+import javax.json.JsonObject;
 import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -79,6 +80,8 @@ import java.util.logging.Logger;
 
 import static com.devoxx.util.DevoxxSettings.LOCAL_NOTIFICATION_RATING;
 import static com.devoxx.util.DevoxxSettings.SESSION_FILTER;
+import static com.devoxx.util.JsonToObject.toSpeaker;
+import static com.devoxx.util.JsonToObject.toSpeakers;
 import static com.devoxx.views.helper.Util.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -230,9 +233,10 @@ public class DevoxxService implements Service {
 
         Services.get(SettingsService.class).ifPresent(settingsService -> {
             String configuredConferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
+            String configuredConferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
             if (configuredConferenceId != null) {
                 if (isNumber(configuredConferenceId)) {
-                    retrieveConference(configuredConferenceId);
+                    retrieveConference(configuredConferenceId, configuredConferenceCfpURL);
                 } else {
                     LOG.log(Level.WARNING, "Found old conference id format, removing it");
                     clearCfpAccount();
@@ -362,7 +366,7 @@ public class DevoxxService implements Service {
     }
 
     @Override
-    public GluonObservableObject<Conference> retrieveConference(String conferenceId) {
+    public GluonObservableObject<Conference> retrieveConference(String conferenceId, String cfpURL) {
         RemoteFunctionObject fnConference = RemoteFunctionBuilder.create("conference")
                 .param("id", conferenceId)
                 .object();
@@ -375,6 +379,9 @@ public class DevoxxService implements Service {
         } else {
             conference.setOnSucceeded(e -> {
                 if (conference.get() != null) {
+                    // cfpURL is no longer a part of conference
+                    // we need to manually set it
+                    conference.get().setCfpURL(cfpURL);
                     setConference(conference.get());
                     ready.set(true);
                 }
@@ -480,7 +487,7 @@ public class DevoxxService implements Service {
             retrievingSessions.set(false);
             sessionsList.removeListener(sessionsListChangeListener);
             ConferenceLoadingLayer.hide(getConference());
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sessions"), e.getSource().getException());
+            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sessionsV2"), e.getSource().getException());
         });
         sessionsList.setOnSucceeded(e -> {
             retrievingSessions.set(false);
@@ -507,20 +514,37 @@ public class DevoxxService implements Service {
 
         speakers.clear();
 
-        RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakers")
-                .param("cfpEndpoint", getCfpURL())
-                .param("conferenceId", getConference().getId())
-                .list();
+        if (isNewCfpURL(getCfpURL())) {
+            RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakersV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .list();
+            
+            GluonObservableList<JsonObject> speakersList = fnSpeakers.call(JsonObject.class);
+            speakersList.setOnFailed(e -> {
+                retrievingSpeakers.set(false);
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakersV2"), e.getSource().getException());
+            });
+            speakersList.setOnSucceeded(e -> {
+                speakers.setAll(toSpeakers(speakersList));
+                retrievingSpeakers.set(false);
+            });
+            
+        } else {
+            RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakers")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("conferenceId", getConference().getId())
+                    .list();
 
-        GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
-        speakersList.setOnFailed(e -> {
-            retrievingSpeakers.set(false);
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
-        });
-        speakersList.setOnSucceeded(e -> {
-            speakers.setAll(speakersList);
-            retrievingSpeakers.set(false);
-        });
+            GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
+            speakersList.setOnFailed(e -> {
+                retrievingSpeakers.set(false);
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
+            });
+            speakersList.setOnSucceeded(e -> {
+                speakers.setAll(speakersList);
+                retrievingSpeakers.set(false);
+            });
+        }
     }
 
     @Override
@@ -537,18 +561,33 @@ public class DevoxxService implements Service {
             if (speakerWithUuid.isDetailsRetrieved()) {
                 return new ReadOnlyObjectWrapper<>(speakerWithUuid).getReadOnlyProperty();
             } else {
-                RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
-                        .param("cfpEndpoint", getCfpURL())
-                        .param("conferenceId", getConference().getId())
-                        .param("uuid", uuid)
-                        .object();
+                if (isNewCfpURL(getCfpURL())) {
+                    RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speakerV2")
+                            .param("cfpEndpoint", getCfpURL())
+                            .param("id", uuid)
+                            .object();
 
-                GluonObservableObject<Speaker> gluonSpeaker = fnSpeaker.call(Speaker.class);
-                gluonSpeaker.setOnSucceeded(e -> {
-                    updateSpeakerDetails(gluonSpeaker.get());
-                });
-                gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
-                return gluonSpeaker;
+                    GluonObservableObject<JsonObject> gluonSpeaker = fnSpeaker.call(JsonObject.class);
+                    gluonSpeaker.setOnFailed(e -> {
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
+                    });
+                    gluonSpeaker.setOnSucceeded(e -> {
+                        updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                    });
+                } else {
+                    RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
+                            .param("cfpEndpoint", getCfpURL())
+                            .param("conferenceId", getConference().getId())
+                            .param("uuid", uuid)
+                            .object();
+
+                    GluonObservableObject<Speaker> gluonSpeaker = fnSpeaker.call(Speaker.class);
+                    gluonSpeaker.setOnSucceeded(e -> {
+                        updateSpeakerDetails(gluonSpeaker.get());
+                    });
+                    gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
+                    return gluonSpeaker;
+                }
             }
         }
 
@@ -558,6 +597,11 @@ public class DevoxxService implements Service {
     private String getCfpURL() {
         final String cfpURL = getConference().getCfpURL();
         if (cfpURL == null) return "";
+        if (isNewCfpURL(cfpURL)) {
+            return cfpURL;
+        }
+        
+        // OLD URL
         if (cfpURL.endsWith("/api/")) {
             return cfpURL.substring(0, cfpURL.length() - 1);
         }
@@ -568,6 +612,10 @@ public class DevoxxService implements Service {
             return cfpURL + "api";
         }
         return cfpURL + "/api";
+    }
+
+    private boolean isNewCfpURL(String cfp) {
+        return cfp.matches(".+?(?=.cfp.dev)(.*)");
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {

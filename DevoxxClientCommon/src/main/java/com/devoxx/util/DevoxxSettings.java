@@ -116,6 +116,7 @@ public class DevoxxSettings {
     public static final String SKIP_FAV_DIALOG = "SKIP_FAV_DIALOG";
     public static final String SIGN_UP = "sign_up";
     public static final String SAVED_CONFERENCE_ID = "devoxx_cfp_id";
+    public static final String SAVED_CONFERENCE_CFP_URL = "devoxx_cfp_url";
     public static final String SAVED_CONFERENCE_NAME = "devoxx_cfp_name";
     public static final String SAVED_CONFERENCE_TYPE = "devoxx_cfp_type";
     public static final String SAVED_ACCOUNT_ID = "devoxx_cfp_account";

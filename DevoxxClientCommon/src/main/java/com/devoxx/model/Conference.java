@@ -65,22 +65,10 @@ public class Conference {
     private String cfpVersion;
     private boolean archived;
     private boolean cfpActive;
-    private String importDate;
-    private String scheduleDate;
     private long locationId;
     private String locationName;
     private String timezone;
     private String cfpAdminEmail;
-    private String fromEmail;
-    private String committeeEmail;
-    private String bccEmail;
-    private String bugReportEmail;
-    private String githubClientId;
-    private String githubSecret;
-    private String googleClientId;
-    private String googleSecret;
-    private String linkedInClientId;
-    private String linkedInSecret;
     private String maxProposals;
     private boolean myBadgeActive;
     List<Owner> owners;
@@ -238,22 +226,6 @@ public class Conference {
         this.cfpActive = cfpActive == null ? false : cfpActive;
     }
 
-    public String getImportDate() {
-        return importDate;
-    }
-
-    public void setImportDate(String importDate) {
-        this.importDate = importDate;
-    }
-
-    public String getScheduleDate() {
-        return scheduleDate;
-    }
-
-    public void setScheduleDate(String scheduleDate) {
-        this.scheduleDate = scheduleDate;
-    }
-
     public long getLocationId() {
         return locationId;
     }
@@ -294,86 +266,6 @@ public class Conference {
 
     public void setCfpAdminEmail(String cfpAdminEmail) {
         this.cfpAdminEmail = cfpAdminEmail;
-    }
-
-    public String getFromEmail() {
-        return fromEmail;
-    }
-
-    public void setFromEmail(String fromEmail) {
-        this.fromEmail = fromEmail;
-    }
-
-    public String getCommitteeEmail() {
-        return committeeEmail;
-    }
-
-    public void setCommitteeEmail(String committeeEmail) {
-        this.committeeEmail = committeeEmail;
-    }
-
-    public String getBccEmail() {
-        return bccEmail;
-    }
-
-    public void setBccEmail(String bccEmail) {
-        this.bccEmail = bccEmail;
-    }
-
-    public String getBugReportEmail() {
-        return bugReportEmail;
-    }
-
-    public void setBugReportEmail(String bugReportEmail) {
-        this.bugReportEmail = bugReportEmail;
-    }
-
-    public String getGithubClientId() {
-        return githubClientId;
-    }
-
-    public void setGithubClientId(String githubClientId) {
-        this.githubClientId = githubClientId;
-    }
-
-    public String getGithubSecret() {
-        return githubSecret;
-    }
-
-    public void setGithubSecret(String githubSecret) {
-        this.githubSecret = githubSecret;
-    }
-
-    public String getGoogleClientId() {
-        return googleClientId;
-    }
-
-    public void setGoogleClientId(String googleClientId) {
-        this.googleClientId = googleClientId;
-    }
-
-    public String getGoogleSecret() {
-        return googleSecret;
-    }
-
-    public void setGoogleSecret(String googleSecret) {
-        this.googleSecret = googleSecret;
-    }
-
-    public String getLinkedInClientId() {
-        return linkedInClientId;
-    }
-
-    public void setLinkedInClientId(String linkedInClientId) {
-        this.linkedInClientId = linkedInClientId;
-    }
-
-    public String getLinkedInSecret() {
-        return linkedInSecret;
-    }
-
-    public void setLinkedInSecret(String linkedInSecret) {
-        this.linkedInSecret = linkedInSecret;
     }
 
     public String getMaxProposals() {
