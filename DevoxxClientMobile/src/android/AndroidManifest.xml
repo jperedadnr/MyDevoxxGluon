@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" 
           package="com.devoxx" 
-          android:versionCode="376"
-          android:versionName="3.5.2">
+          android:versionCode="381"
+          android:versionName="3.6.0">
     <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="26"/>
 
     <supports-screens android:xlargeScreens="true"/>
