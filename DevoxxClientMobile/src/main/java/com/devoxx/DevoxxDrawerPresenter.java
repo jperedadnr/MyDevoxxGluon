@@ -26,6 +26,7 @@
 package com.devoxx;
 
 import com.devoxx.model.Conference;
+import com.devoxx.model.Floor;
 import com.devoxx.service.Service;
 import com.devoxx.util.DevoxxBundle;
 import com.devoxx.util.DevoxxCountry;
@@ -46,6 +47,8 @@ import javafx.scene.layout.Region;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import java.util.List;
 
 import static com.gluonhq.charm.glisten.application.MobileApplication.HOME_VIEW;
 
@@ -114,7 +117,8 @@ public class DevoxxDrawerPresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     private void checkAndUpdateItems() {
-        if (service.getConference().getFloorPlans() != null && service.getConference().getFloorPlans().size() == 0) {
+        final List<Floor> floorPlans = service.getConference().getFloorPlans();
+        if (floorPlans == null || floorPlans.isEmpty()) {
             drawer.getItems().remove(DevoxxView.EXHIBITION_MAPS.getMenuItem());
         } else {
             if (!drawer.getItems().contains(DevoxxView.EXHIBITION_MAPS.getMenuItem())) {
