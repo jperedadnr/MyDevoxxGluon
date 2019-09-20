@@ -306,4 +306,10 @@ public interface Service {
      * Fetches a map of vote texts for each rating
      */
     ObservableList<RatingData> retrieveVoteTexts(int rating);
+
+    /**
+     * Checks if the CFP matches the new url
+     * @return true, if the cfp matches the new url
+     */
+    boolean isNewCfpURL();
 }
