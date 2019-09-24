@@ -82,6 +82,7 @@ public class DevoxxService implements Service {
 
     private static final Logger LOG = Logger.getLogger(DevoxxService.class.getName());
     private static final String REMOTE_FUNCTION_FAILED_MSG = "Remote function '%s' failed.";
+    private static final String AUTHORIZATION_PRETEXT = "Bearer %s";
 
 //    private static final String DEVOXX_CFP_DATA_URL = "https://s3-eu-west-1.amazonaws.com/cfpdevoxx/cfp.json";
 
@@ -778,26 +779,47 @@ public class DevoxxService implements Service {
 
         retrievingFavoriteSessions.set(true);
 
-        RemoteFunctionObject fnFavored = RemoteFunctionBuilder.create("favored")
-                .param("0", getCfpURL())
-                .param("1", cfpUserUuid.get())
-                .object();
+        if (isNewCfpURL()) {
+            RemoteFunctionList fnFavoredV2 = RemoteFunctionBuilder.create("favoredV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                    .list();
 
-        GluonObservableObject<Favored> functionSessions = fnFavored.call(Favored.class);
-        functionSessions.setOnSucceeded(e -> {
+            GluonObservableList<JsonObject> favoredSessions = fnFavoredV2.call(JsonObject.class);
+            favoredSessions.setOnSucceeded(e -> {
+                for (JsonObject favoredSession : favoredSessions) {
+                    findSession(String.valueOf(favoredSession.getInt("proposalId"))).ifPresent(internalFavoredSessions::add);
+                }
+                internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
+                ready.set(true);
+                retrievingFavoriteSessions.set(false);
+                finishNotificationsPreloading();
+            });
+            favoredSessions.setOnFailed(e -> {
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favoredV2"), e.getSource().getException());
+                retrievingFavoriteSessions.set(false);
+            });
+        } else {
+            RemoteFunctionObject fnFavored = RemoteFunctionBuilder.create("favored")
+                    .param("0", getCfpURL())
+                    .param("1", cfpUserUuid.get())
+                    .object();
 
-            for (SessionId sessionId : functionSessions.get().getFavored()) {
-                findSession(sessionId.getId()).ifPresent(internalFavoredSessions::add);
-            }
-            internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
-            ready.set(true);
-            retrievingFavoriteSessions.set(false);
-            finishNotificationsPreloading();
-        });
-        functionSessions.setOnFailed(e -> {
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favored"), e.getSource().getException());
-            retrievingFavoriteSessions.set(false);
-        });
+            GluonObservableObject<Favored> functionSessions = fnFavored.call(Favored.class);
+            functionSessions.setOnSucceeded(e -> {
+                for (SessionId sessionId : functionSessions.get().getFavored()) {
+                    findSession(sessionId.getId()).ifPresent(internalFavoredSessions::add);
+                }
+                internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
+                ready.set(true);
+                retrievingFavoriteSessions.set(false);
+                finishNotificationsPreloading();
+            });
+            functionSessions.setOnFailed(e -> {
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favored"), e.getSource().getException());
+                retrievingFavoriteSessions.set(false);
+            });
+        }
 
         return internalFavoredSessions;
     }
