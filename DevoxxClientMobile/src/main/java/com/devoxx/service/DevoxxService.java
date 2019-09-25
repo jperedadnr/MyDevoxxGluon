@@ -830,25 +830,48 @@ public class DevoxxService implements Service {
                 if (c.wasRemoved()) {
                     for (Session session : c.getRemoved()) {
                         LOG.log(Level.INFO, "Removing Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemove")
-                                .param("0", getCfpURL())
-                                .param("1", cfpUserUuid.get())
-                                .param("2", session.getTalk().getId())
-                                .object();
-                        GluonObservableObject<String> response = fnRemove.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage()));
+                        if (isNewCfpURL()) {
+                            RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemoveV2")
+                                    .param("cfpEndpoint", getCfpURL())
+                                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                                    .param("id", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnRemove.call(String.class);
+                            response.setOnFailed(e -> {
+                                // TODO: When successful, the response is 401. And for RF the request failed.
+                                LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage());
+                            });
+                        } else {
+                            RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemove")
+                                    .param("0", getCfpURL())
+                                    .param("1", cfpUserUuid.get())
+                                    .param("2", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnRemove.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage()));
+                        }
                     }
                 }
                 if (c.wasAdded()) {
                     for (Session session : c.getAddedSubList()) {
                         LOG.log(Level.INFO, "Adding Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAdd")
-                                .param("0", getCfpURL())
-                                .param("1", cfpUserUuid.get())
-                                .param("2", session.getTalk().getId())
-                                .object();
-                        GluonObservableObject<String> response = fnAdd.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        if (isNewCfpURL()) {
+                            RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAddV2")
+                                    .param("cfpEndpoint", getCfpURL())
+                                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                                    .param("id", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnAdd.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        } else {
+                            RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAdd")
+                                    .param("0", getCfpURL())
+                                    .param("1", cfpUserUuid.get())
+                                    .param("2", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnAdd.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        }
                     }
                 }
             }
