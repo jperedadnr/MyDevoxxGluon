@@ -37,13 +37,19 @@ import com.gluonhq.charm.glisten.afterburner.GluonPresenter;
 import com.gluonhq.charm.glisten.application.MobileApplication;
 import com.gluonhq.charm.glisten.control.AppBar;
 import com.gluonhq.charm.glisten.control.Dialog;
+import com.gluonhq.charm.glisten.control.ProgressIndicator;
 import com.gluonhq.charm.glisten.control.Rating;
+import com.gluonhq.charm.glisten.control.TextArea;
 import com.gluonhq.charm.glisten.control.TextArea;
 import com.gluonhq.charm.glisten.control.Toast;
 import com.gluonhq.charm.glisten.mvc.View;
 import com.gluonhq.charm.glisten.visual.MaterialDesignIcon;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
+import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -60,9 +66,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
-import javafx.css.PseudoClass;
 
 public class VotePresenter extends GluonPresenter<DevoxxApplication> {
 
@@ -107,6 +110,9 @@ public class VotePresenter extends GluonPresenter<DevoxxApplication> {
             updateRating(nv.intValue());
         });
 
+        final VBox placeholder = new VBox(new ProgressIndicator());
+        placeholder.setAlignment(Pos.TOP_CENTER);
+        comments.setPlaceholder(placeholder);
         comments.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         comments.setCellFactory(param -> new UnselectListCell<RatingData>() {
 
@@ -285,7 +291,9 @@ public class VotePresenter extends GluonPresenter<DevoxxApplication> {
                 VotePresenter.class.getResource("/star/star-1.png").toExternalForm(),
                 VotePresenter.class.getResource("/star/star-2.png").toExternalForm(),
                 VotePresenter.class.getResource("/star/star-3.png").toExternalForm(),
-                VotePresenter.class.getResource("/star/star-4.png").toExternalForm()
+                VotePresenter.class.getResource("/star/star-4.png").toExternalForm(),
+                VotePresenter.class.getResource("/star/star-5.png").toExternalForm(),
+                VotePresenter.class.getResource("/star/star-6.png").toExternalForm()
         );
         return new Image(stars.get(new Random().nextInt(stars.size())));
     }

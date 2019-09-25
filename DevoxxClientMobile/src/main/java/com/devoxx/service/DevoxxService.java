@@ -956,19 +956,36 @@ public class DevoxxService implements Service {
 
     @Override
     public ObservableList<RatingData> retrieveVoteTexts(int rating) {
-        ObservableList<RatingData> ratingData = FXCollections.observableArrayList();
-        RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTexts").list();
-        GluonObservableList<Rating> voteTexts = fnTexts.call(Rating.class);
-        voteTexts.setOnSucceeded(e -> {
-            for (Rating voteText : voteTexts) {
-                if (voteText.getRating() == rating) {
-                    ratingData.setAll(voteText.getData());
-                    break;
+        ObservableList<RatingData> ratingDataList = FXCollections.observableArrayList();
+        if (isNewCfpURL()) {
+            RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTextsV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .list();
+            final GluonObservableList<JsonObject> voteTexts = fnTexts.call(JsonObject.class);
+            voteTexts.setOnSucceeded(e -> {
+                for (JsonObject voteText : voteTexts) {
+                    if (voteText.getInt("rating") == rating) {
+                        final RatingData ratingData = new RatingData();
+                        ratingData.setText(voteText.getString("compliment"));
+                        ratingDataList.add(ratingData);
+                    }
                 }
-            }
-        });
-        voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTexts"), e.getSource().getException()));
-        return ratingData;
+            });
+            voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTextsV2"), e.getSource().getException()));
+        } else {
+            RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTexts").list();
+            GluonObservableList<Rating> voteTexts = fnTexts.call(Rating.class);
+            voteTexts.setOnSucceeded(e -> {
+                for (Rating voteText : voteTexts) {
+                    if (voteText.getRating() == rating) {
+                        ratingDataList.setAll(voteText.getData());
+                        break;
+                    }
+                }
+            });
+            voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTexts"), e.getSource().getException()));
+        }
+        return ratingDataList;
     }
 
     @Override
@@ -983,18 +1000,14 @@ public class DevoxxService implements Service {
             throw new IllegalStateException("An authenticated user must be available when calling this method.");
         }
 
-        User authenticatedUser = authenticationClient.getAuthenticatedUser();
-        if (authenticatedUser.getEmail() == null || authenticatedUser.getEmail().isEmpty()) {
-            LOG.log(Level.WARNING, "Can not send vote, authenticated user doesn't have an email address.");
-        } else {
-            RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalk")
-                    .param("0", getCfpURL())
-                    .param("1", String.valueOf(vote.getValue()))
-                    .param("2", authenticatedUser.getEmail())
-                    .param("3", vote.getTalkId())
-                    .param("4", vote.getDelivery())
-                    .param("5", vote.getContent())
-                    .param("6", vote.getOther())
+        if (isNewCfpURL()) {
+            RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalkV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("id", vote.getTalkId())
+                    .param("compliment", vote.getDelivery())
+                    .param("rating", String.valueOf(vote.getValue()))
+                    .param("feedback", vote.getOther())
+                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
                     .object();
             GluonObservableObject<String> voteResult = fnVoteTalk.call(String.class);
             voteResult.initializedProperty().addListener((obs, ov, nv) -> {
@@ -1003,6 +1016,28 @@ public class DevoxxService implements Service {
                 }
             });
             voteResult.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTalk"), e.getSource().getException()));
+        } else {
+            User authenticatedUser = authenticationClient.getAuthenticatedUser();
+            if (authenticatedUser.getEmail() == null || authenticatedUser.getEmail().isEmpty()) {
+                LOG.log(Level.WARNING, "Can not send vote, authenticated user doesn't have an email address.");
+            } else {
+                RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalk")
+                        .param("0", getCfpURL())
+                        .param("1", String.valueOf(vote.getValue()))
+                        .param("2", authenticatedUser.getEmail())
+                        .param("3", vote.getTalkId())
+                        .param("4", vote.getDelivery())
+                        .param("5", vote.getContent())
+                        .param("6", vote.getOther())
+                        .object();
+                GluonObservableObject<String> voteResult = fnVoteTalk.call(String.class);
+                voteResult.initializedProperty().addListener((obs, ov, nv) -> {
+                    if (nv) {
+                        LOG.log(Level.INFO, "Response from vote: " + voteResult.get());
+                    }
+                });
+                voteResult.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTalk"), e.getSource().getException()));
+            }
         }
     }
 
