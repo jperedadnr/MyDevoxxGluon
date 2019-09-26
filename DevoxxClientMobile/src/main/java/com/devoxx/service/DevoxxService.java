@@ -26,10 +26,12 @@
 package com.devoxx.service;
 
 import com.airhacks.afterburner.injection.Injector;
+import com.devoxx.DevoxxView;
 import com.devoxx.model.*;
 import com.devoxx.util.DevoxxBundle;
 import com.devoxx.util.DevoxxNotifications;
 import com.devoxx.util.DevoxxSettings;
+import com.devoxx.views.AuthenticatePresenter;
 import com.devoxx.views.helper.Placeholder;
 import com.devoxx.views.helper.SessionVisuals.SessionListType;
 import com.devoxx.views.helper.Util;
@@ -63,25 +65,17 @@ import javafx.scene.control.Button;
 
 import javax.json.JsonObject;
 import java.io.*;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.devoxx.util.DevoxxSettings.LOCAL_NOTIFICATION_RATING;
-import static com.devoxx.util.DevoxxSettings.SESSION_FILTER;
+import static com.devoxx.util.DevoxxSettings.*;
 import static com.devoxx.util.JsonToObject.toSpeaker;
 import static com.devoxx.util.JsonToObject.toSpeakers;
+import static com.devoxx.util.Strings.encode;
 import static com.devoxx.views.helper.Util.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -89,6 +83,7 @@ public class DevoxxService implements Service {
 
     private static final Logger LOG = Logger.getLogger(DevoxxService.class.getName());
     private static final String REMOTE_FUNCTION_FAILED_MSG = "Remote function '%s' failed.";
+    private static final String AUTHORIZATION_PRETEXT = "Bearer %s";
 
 //    private static final String DEVOXX_CFP_DATA_URL = "https://s3-eu-west-1.amazonaws.com/cfpdevoxx/cfp.json";
 
@@ -114,8 +109,20 @@ public class DevoxxService implements Service {
                 });
             });
 
-            // Remove Sessions filter key-value
-            Services.get(SettingsService.class).ifPresent(ss -> ss.remove(SESSION_FILTER));
+            Services.get(SettingsService.class).ifPresent(ss -> {
+                // Remove Sessions filter key-value
+                ss.remove(SESSION_FILTER);
+                // Check for account expiry and remove token
+                final String expiry = ss.retrieve(SAVED_ACCOUNT_EXPIRY);
+                if (expiry != null) {
+                    if (Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(expiry)))) {
+                        ss.remove(SAVED_ACCOUNT_USERNAME);
+                        ss.remove(SAVED_ACCOUNT_TOKEN);
+                        ss.remove(SAVED_ACCOUNT_EXPIRY);
+                    }
+                }
+            });
+
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, null, ex);
         }
@@ -127,8 +134,11 @@ public class DevoxxService implements Service {
     private final PushClient pushClient;
     private final DataClient localDataClient;
     private final DataClient cloudDataClient;
+    private final DataClient newCloudDataClient;
 
     private final StringProperty cfpUserUuid = new SimpleStringProperty(this, "cfpUserUuid", "");
+    private final StringProperty username = new SimpleStringProperty(this, "username", "");
+    private final StringProperty userToken = new SimpleStringProperty(this, "userToken", "");
 
     private final BooleanProperty ready = new SimpleBooleanProperty(false);
 
@@ -175,6 +185,10 @@ public class DevoxxService implements Service {
                 .operationMode(OperationMode.CLOUD_FIRST)
                 .build();
 
+        newCloudDataClient = DataClientBuilder.create()
+                .operationMode(OperationMode.CLOUD_FIRST)
+                .build();
+
         // enable push notifications and subscribe to the possibly selected conference
         pushClient = new PushClient();
         pushClient.enable(DevoxxNotifications.GCM_SENDER_ID);
@@ -188,6 +202,14 @@ public class DevoxxService implements Service {
         });
 
         cfpUserUuid.addListener((obs, ov, nv) -> {
+            if ("".equals(nv)) {
+                if (internalFavoredSessions != null && internalFavoredSessionsListener != null) {
+                    internalFavoredSessions.removeListener(internalFavoredSessionsListener);
+                }
+            }
+        });
+
+        username.addListener((obs, ov, nv) -> {
             if ("".equals(nv)) {
                 if (internalFavoredSessions != null && internalFavoredSessionsListener != null) {
                     internalFavoredSessions.removeListener(internalFavoredSessionsListener);
@@ -243,33 +265,38 @@ public class DevoxxService implements Service {
                     settingsService.remove(DevoxxSettings.SAVED_CONFERENCE_ID);
                 }
             }
+
+            // Update user details
+            username.set(Optional.ofNullable(settingsService.retrieve(SAVED_ACCOUNT_USERNAME)).orElse(""));
+            userToken.set(Optional.ofNullable(settingsService.retrieve(SAVED_ACCOUNT_TOKEN)).orElse(""));
         });
     }
 
     @Override
     public void authenticate(Runnable successRunnable) {
-        authenticationClient.authenticate(user -> {
-            if (user.getEmail() == null) {
-                showEmailAlert();
-            } else {
-                loadCfpAccount(user, successRunnable);
-            }
-        });
+        authenticate(successRunnable, null);
     }
 
     @Override
     public void authenticate(Runnable successRunnable, Runnable failureRunnable) {
-        authenticationClient.authenticate(user -> {
-            if (user.getEmail() == null) {
-                showEmailAlert();
-            } else {
-                loadCfpAccount(user, successRunnable);
+        if (isNewCfpURL()) {
+            if (!isAuthenticated()) {
+                DevoxxView.AUTHENTICATE.switchView().ifPresent(view ->
+                        ((AuthenticatePresenter) view).authenticate(() -> loadCfpAccount(null, successRunnable), failureRunnable));
             }
-        }, message -> {
-            if (failureRunnable != null) {
-                failureRunnable.run();
-            }
-        });
+        } else {
+            authenticationClient.authenticate(user -> {
+                if (user.getEmail() == null) {
+                    showEmailAlert();
+                } else {
+                    loadCfpAccount(user, successRunnable);
+                }
+            }, message -> {
+                if (failureRunnable != null) {
+                    failureRunnable.run();
+                }
+            });
+        }
     }
 
     private void showEmailAlert() {
@@ -281,7 +308,11 @@ public class DevoxxService implements Service {
 
     @Override
     public boolean isAuthenticated() {
-        return authenticationClient.isAuthenticated() && cfpUserUuid.isNotEmpty().get();
+        if (isNewCfpURL()) {
+            return !isSavedAccountExpired() && username.isNotEmpty().get();
+        } else {
+            return authenticationClient.isAuthenticated() && cfpUserUuid.isNotEmpty().get();
+        }
     }
 
     @Override
@@ -318,10 +349,8 @@ public class DevoxxService implements Service {
 
     private boolean internalLogOut() {
         authenticationClient.signOut();
+        clearCfpAccount();
         java.net.CookieHandler.setDefault(new java.net.CookieManager());
-        if (!authenticationClient.isAuthenticated()) {
-            clearCfpAccount();
-        }
         return true;
     }
 
@@ -514,7 +543,7 @@ public class DevoxxService implements Service {
 
         speakers.clear();
 
-        if (isNewCfpURL(getCfpURL())) {
+        if (isNewCfpURL()) {
             RemoteFunctionList fnSpeakers = RemoteFunctionBuilder.create("speakersV2")
                     .param("cfpEndpoint", getCfpURL())
                     .list();
@@ -561,7 +590,7 @@ public class DevoxxService implements Service {
             if (speakerWithUuid.isDetailsRetrieved()) {
                 return new ReadOnlyObjectWrapper<>(speakerWithUuid).getReadOnlyProperty();
             } else {
-                if (isNewCfpURL(getCfpURL())) {
+                if (isNewCfpURL()) {
                     RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speakerV2")
                             .param("cfpEndpoint", getCfpURL())
                             .param("id", uuid)
@@ -594,10 +623,17 @@ public class DevoxxService implements Service {
         return new ReadOnlyObjectWrapper<>();
     }
 
+    public boolean isNewCfpURL() {
+        return isNewCfpURL(getCfpURL());
+    }
+
     private String getCfpURL() {
         final String cfpURL = getConference().getCfpURL();
         if (cfpURL == null) return "";
         if (isNewCfpURL(cfpURL)) {
+            if (cfpURL.endsWith("/api/")) {
+                return cfpURL.substring(0, cfpURL.length() - 1);
+            }
             return cfpURL;
         }
         
@@ -744,26 +780,47 @@ public class DevoxxService implements Service {
 
         retrievingFavoriteSessions.set(true);
 
-        RemoteFunctionObject fnFavored = RemoteFunctionBuilder.create("favored")
-                .param("0", getCfpURL())
-                .param("1", cfpUserUuid.get())
-                .object();
+        if (isNewCfpURL()) {
+            RemoteFunctionList fnFavoredV2 = RemoteFunctionBuilder.create("favoredV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                    .list();
 
-        GluonObservableObject<Favored> functionSessions = fnFavored.call(Favored.class);
-        functionSessions.setOnSucceeded(e -> {
+            GluonObservableList<JsonObject> favoredSessions = fnFavoredV2.call(JsonObject.class);
+            favoredSessions.setOnSucceeded(e -> {
+                for (JsonObject favoredSession : favoredSessions) {
+                    findSession(String.valueOf(favoredSession.getInt("proposalId"))).ifPresent(internalFavoredSessions::add);
+                }
+                internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
+                ready.set(true);
+                retrievingFavoriteSessions.set(false);
+                finishNotificationsPreloading();
+            });
+            favoredSessions.setOnFailed(e -> {
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favoredV2"), e.getSource().getException());
+                retrievingFavoriteSessions.set(false);
+            });
+        } else {
+            RemoteFunctionObject fnFavored = RemoteFunctionBuilder.create("favored")
+                    .param("0", getCfpURL())
+                    .param("1", cfpUserUuid.get())
+                    .object();
 
-            for (SessionId sessionId : functionSessions.get().getFavored()) {
-                findSession(sessionId.getId()).ifPresent(internalFavoredSessions::add);
-            }
-            internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
-            ready.set(true);
-            retrievingFavoriteSessions.set(false);
-            finishNotificationsPreloading();
-        });
-        functionSessions.setOnFailed(e -> {
-            LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favored"), e.getSource().getException());
-            retrievingFavoriteSessions.set(false);
-        });
+            GluonObservableObject<Favored> functionSessions = fnFavored.call(Favored.class);
+            functionSessions.setOnSucceeded(e -> {
+                for (SessionId sessionId : functionSessions.get().getFavored()) {
+                    findSession(sessionId.getId()).ifPresent(internalFavoredSessions::add);
+                }
+                internalFavoredSessionsListener = initializeSessionsListener(internalFavoredSessions);
+                ready.set(true);
+                retrievingFavoriteSessions.set(false);
+                finishNotificationsPreloading();
+            });
+            functionSessions.setOnFailed(e -> {
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "favored"), e.getSource().getException());
+                retrievingFavoriteSessions.set(false);
+            });
+        }
 
         return internalFavoredSessions;
     }
@@ -774,25 +831,48 @@ public class DevoxxService implements Service {
                 if (c.wasRemoved()) {
                     for (Session session : c.getRemoved()) {
                         LOG.log(Level.INFO, "Removing Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemove")
-                                .param("0", getCfpURL())
-                                .param("1", cfpUserUuid.get())
-                                .param("2", session.getTalk().getId())
-                                .object();
-                        GluonObservableObject<String> response = fnRemove.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage()));
+                        if (isNewCfpURL()) {
+                            RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemoveV2")
+                                    .param("cfpEndpoint", getCfpURL())
+                                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                                    .param("id", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnRemove.call(String.class);
+                            response.setOnFailed(e -> {
+                                // TODO: When successful, the response is 401. And for RF the request failed.
+                                LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage());
+                            });
+                        } else {
+                            RemoteFunctionObject fnRemove = RemoteFunctionBuilder.create("favoredRemove")
+                                    .param("0", getCfpURL())
+                                    .param("1", cfpUserUuid.get())
+                                    .param("2", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnRemove.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to remove session " + session.getTalk().getId() + " from favored" + ": " + response.getException().getMessage()));
+                        }
                     }
                 }
                 if (c.wasAdded()) {
                     for (Session session : c.getAddedSubList()) {
                         LOG.log(Level.INFO, "Adding Session: " + session.getTalk().getId() + " / " + session.getTitle());
-                        RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAdd")
-                                .param("0", getCfpURL())
-                                .param("1", cfpUserUuid.get())
-                                .param("2", session.getTalk().getId())
-                                .object();
-                        GluonObservableObject<String> response = fnAdd.call(String.class);
-                        response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        if (isNewCfpURL()) {
+                            RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAddV2")
+                                    .param("cfpEndpoint", getCfpURL())
+                                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
+                                    .param("id", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnAdd.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        } else {
+                            RemoteFunctionObject fnAdd = RemoteFunctionBuilder.create("favoredAdd")
+                                    .param("0", getCfpURL())
+                                    .param("1", cfpUserUuid.get())
+                                    .param("2", session.getTalk().getId())
+                                    .object();
+                            GluonObservableObject<String> response = fnAdd.call(String.class);
+                            response.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to add session " + session.getTalk().getId() + " to favored" + ": " + response.getException().getMessage()));
+                        }
                     }
                 }
             }
@@ -877,19 +957,36 @@ public class DevoxxService implements Service {
 
     @Override
     public ObservableList<RatingData> retrieveVoteTexts(int rating) {
-        ObservableList<RatingData> ratingData = FXCollections.observableArrayList();
-        RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTexts").list();
-        GluonObservableList<Rating> voteTexts = fnTexts.call(Rating.class);
-        voteTexts.setOnSucceeded(e -> {
-            for (Rating voteText : voteTexts) {
-                if (voteText.getRating() == rating) {
-                    ratingData.setAll(voteText.getData());
-                    break;
+        ObservableList<RatingData> ratingDataList = FXCollections.observableArrayList();
+        if (isNewCfpURL()) {
+            RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTextsV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .list();
+            final GluonObservableList<JsonObject> voteTexts = fnTexts.call(JsonObject.class);
+            voteTexts.setOnSucceeded(e -> {
+                for (JsonObject voteText : voteTexts) {
+                    if (voteText.getInt("rating") == rating) {
+                        final RatingData ratingData = new RatingData();
+                        ratingData.setText(voteText.getString("compliment"));
+                        ratingDataList.add(ratingData);
+                    }
                 }
-            }
-        });
-        voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTexts"), e.getSource().getException()));
-        return ratingData;
+            });
+            voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTextsV2"), e.getSource().getException()));
+        } else {
+            RemoteFunctionList fnTexts = RemoteFunctionBuilder.create("voteTexts").list();
+            GluonObservableList<Rating> voteTexts = fnTexts.call(Rating.class);
+            voteTexts.setOnSucceeded(e -> {
+                for (Rating voteText : voteTexts) {
+                    if (voteText.getRating() == rating) {
+                        ratingDataList.setAll(voteText.getData());
+                        break;
+                    }
+                }
+            });
+            voteTexts.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTexts"), e.getSource().getException()));
+        }
+        return ratingDataList;
     }
 
     @Override
@@ -904,18 +1001,14 @@ public class DevoxxService implements Service {
             throw new IllegalStateException("An authenticated user must be available when calling this method.");
         }
 
-        User authenticatedUser = authenticationClient.getAuthenticatedUser();
-        if (authenticatedUser.getEmail() == null || authenticatedUser.getEmail().isEmpty()) {
-            LOG.log(Level.WARNING, "Can not send vote, authenticated user doesn't have an email address.");
-        } else {
-            RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalk")
-                    .param("0", getCfpURL())
-                    .param("1", String.valueOf(vote.getValue()))
-                    .param("2", authenticatedUser.getEmail())
-                    .param("3", vote.getTalkId())
-                    .param("4", vote.getDelivery())
-                    .param("5", vote.getContent())
-                    .param("6", vote.getOther())
+        if (isNewCfpURL()) {
+            RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalkV2")
+                    .param("cfpEndpoint", getCfpURL())
+                    .param("id", vote.getTalkId())
+                    .param("compliment", vote.getDelivery())
+                    .param("rating", String.valueOf(vote.getValue()))
+                    .param("feedback", vote.getOther())
+                    .param("authorization", String.format(AUTHORIZATION_PRETEXT, userToken.get()))
                     .object();
             GluonObservableObject<String> voteResult = fnVoteTalk.call(String.class);
             voteResult.initializedProperty().addListener((obs, ov, nv) -> {
@@ -924,6 +1017,28 @@ public class DevoxxService implements Service {
                 }
             });
             voteResult.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTalk"), e.getSource().getException()));
+        } else {
+            User authenticatedUser = authenticationClient.getAuthenticatedUser();
+            if (authenticatedUser.getEmail() == null || authenticatedUser.getEmail().isEmpty()) {
+                LOG.log(Level.WARNING, "Can not send vote, authenticated user doesn't have an email address.");
+            } else {
+                RemoteFunctionObject fnVoteTalk = RemoteFunctionBuilder.create("voteTalk")
+                        .param("0", getCfpURL())
+                        .param("1", String.valueOf(vote.getValue()))
+                        .param("2", authenticatedUser.getEmail())
+                        .param("3", vote.getTalkId())
+                        .param("4", vote.getDelivery())
+                        .param("5", vote.getContent())
+                        .param("6", vote.getOther())
+                        .object();
+                GluonObservableObject<String> voteResult = fnVoteTalk.call(String.class);
+                voteResult.initializedProperty().addListener((obs, ov, nv) -> {
+                    if (nv) {
+                        LOG.log(Level.INFO, "Response from vote: " + voteResult.get());
+                    }
+                });
+                voteResult.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "voteTalk"), e.getSource().getException()));
+            }
         }
     }
 
@@ -975,20 +1090,30 @@ public class DevoxxService implements Service {
 
     private ObservableList<Note> internalRetrieveNotes() {
         if (DevoxxSettings.USE_REMOTE_NOTES) {
+            if (isNewCfpURL()) {
+                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(conferenceUserKey() + "_notes",
+                        Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
+            }
             return DataProvider.retrieveList(cloudDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_notes",
                     Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         } else {
-            return DataProvider.retrieveList(localDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_notes",
+            return DataProvider.retrieveList(localDataClient.createListDataReader(
+                    (isNewCfpURL() ? conferenceUserKey() : authenticationClient.getAuthenticatedUser().getKey()) + "_notes",
                     Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         }
     }
 
     private ObservableList<Badge> internalRetrieveBadges() {
         if (DevoxxSettings.USE_REMOTE_NOTES) {
+            if (isNewCfpURL()) {
+                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(conferenceUserKey() + "_badges",
+                        Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
+            }
             return DataProvider.retrieveList(cloudDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_badges",
                     Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         } else {
-            return DataProvider.retrieveList(localDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_badges",
+            return DataProvider.retrieveList(localDataClient.createListDataReader(
+                    (isNewCfpURL() ? conferenceUserKey() : authenticationClient.getAuthenticatedUser().getKey()) + "_badges",
                     Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         }
     }
@@ -1004,41 +1129,53 @@ public class DevoxxService implements Service {
     }
 
     private void loadCfpAccount(User user, Runnable successRunnable) {
-        if (cfpUserUuid.isEmpty().get()) {
-            Services.get(SettingsService.class).ifPresent(settingsService -> {
-                String devoxxCfpAccountUuid = settingsService.retrieve(DevoxxSettings.SAVED_ACCOUNT_ID);
-                if (devoxxCfpAccountUuid == null) {
-                    if (user.getLoginMethod() == LoginMethod.Type.CUSTOM) {
-                        LOG.log(Level.INFO, "Logged in user " + user + " as account with uuid " + user.getNetworkId());
-                        cfpUserUuid.set(user.getNetworkId());
-                        settingsService.store(DevoxxSettings.SAVED_ACCOUNT_ID, user.getNetworkId());
-
-                        if (successRunnable != null) {
-                            successRunnable.run();
-                        }
-                    } else {
-                        RemoteFunctionObject fnVerifyAccount = RemoteFunctionBuilder.create("verifyAccount")
-                                .param("0", getCfpURL())
-                                .param("1", user.getNetworkId())
-                                .param("2", user.getLoginMethod().name())
-                                .param("3", user.getEmail())
-                                .object();
-                        GluonObservableObject<String> accountUuid = fnVerifyAccount.call(String.class);
-                        accountUuid.setOnSucceeded(e -> {
-                            LOG.log(Level.INFO, "Verified user " + user + " as account with uuid " + accountUuid);
-                            cfpUserUuid.set(accountUuid.get());
-                            settingsService.store(DevoxxSettings.SAVED_ACCOUNT_ID, accountUuid.get());
+        if (isNewCfpURL()) {
+            if (username.isEmpty().get()) {
+                Services.get(SettingsService.class).ifPresent(settingsService -> {
+                    username.set(Optional.ofNullable(settingsService.retrieve(SAVED_ACCOUNT_USERNAME)).orElse(""));
+                    userToken.set(Optional.ofNullable(settingsService.retrieve(SAVED_ACCOUNT_TOKEN)).orElse(""));
+                });
+                if (successRunnable != null) {
+                    successRunnable.run();
+                }
+            }
+        } else {
+            if (cfpUserUuid.isEmpty().get()) {
+                Services.get(SettingsService.class).ifPresent(settingsService -> {
+                    String devoxxCfpAccountUuid = settingsService.retrieve(SAVED_ACCOUNT_ID);
+                    if (devoxxCfpAccountUuid == null) {
+                        if (user.getLoginMethod() == LoginMethod.Type.CUSTOM) {
+                            LOG.log(Level.INFO, "Logged in user " + user + " as account with uuid " + user.getNetworkId());
+                            cfpUserUuid.set(user.getNetworkId());
+                            settingsService.store(SAVED_ACCOUNT_ID, user.getNetworkId());
 
                             if (successRunnable != null) {
                                 successRunnable.run();
                             }
-                        });
+                        } else {
+                            RemoteFunctionObject fnVerifyAccount = RemoteFunctionBuilder.create("verifyAccount")
+                                    .param("0", getCfpURL())
+                                    .param("1", user.getNetworkId())
+                                    .param("2", user.getLoginMethod().name())
+                                    .param("3", user.getEmail())
+                                    .object();
+                            GluonObservableObject<String> accountUuid = fnVerifyAccount.call(String.class);
+                            accountUuid.setOnSucceeded(e -> {
+                                LOG.log(Level.INFO, "Verified user " + user + " as account with uuid " + accountUuid);
+                                cfpUserUuid.set(accountUuid.get());
+                                settingsService.store(SAVED_ACCOUNT_ID, accountUuid.get());
+
+                                if (successRunnable != null) {
+                                    successRunnable.run();
+                                }
+                            });
+                        }
+                    } else {
+                        LOG.log(Level.INFO, "Verified user " + user + " retrieved from settings " + devoxxCfpAccountUuid);
+                        cfpUserUuid.set(devoxxCfpAccountUuid);
                     }
-                } else {
-                    LOG.log(Level.INFO, "Verified user " + user + " retrieved from settings " + devoxxCfpAccountUuid);
-                    cfpUserUuid.set(devoxxCfpAccountUuid);
-                }
-            });
+                });
+            }
         }
     }
 
@@ -1058,6 +1195,8 @@ public class DevoxxService implements Service {
 
     private void clearCfpAccount() {
         cfpUserUuid.set("");
+        username.set("");
+        userToken.set("");
         notes = null;
         badges = null;
         sponsorBadges = null;
@@ -1065,9 +1204,14 @@ public class DevoxxService implements Service {
         internalFavoredSessions.clear();
 
         Services.get(SettingsService.class).ifPresent(settingsService -> {
-            settingsService.remove(DevoxxSettings.SAVED_ACCOUNT_ID);
-            settingsService.remove(DevoxxSettings.BADGE_TYPE);
-            settingsService.remove(DevoxxSettings.BADGE_SPONSOR);
+            settingsService.remove(SAVED_ACCOUNT_ID);
+
+            settingsService.remove(SAVED_ACCOUNT_USERNAME);
+            settingsService.remove(SAVED_ACCOUNT_TOKEN);
+            settingsService.remove(SAVED_ACCOUNT_EXPIRY);
+
+            settingsService.remove(BADGE_TYPE);
+            settingsService.remove(BADGE_SPONSOR);
         });
     }
 
@@ -1130,5 +1274,20 @@ public class DevoxxService implements Service {
         if (f.getName().endsWith(".cache") || f.getName().endsWith(".info")) {
             f.delete();
         }
+    }
+
+    private Boolean isSavedAccountExpired() {
+        final Optional<SettingsService> settingsService = Services.get(SettingsService.class);
+        if (settingsService.isPresent()) {
+            final String expiryString = settingsService.get().retrieve(SAVED_ACCOUNT_EXPIRY);
+            if (expiryString != null) {
+                return Instant.now().isAfter(Instant.ofEpochSecond(Long.parseLong(expiryString)));
+            }
+        }
+        return true;
+    }
+
+    private String conferenceUserKey() {
+        return getConference().getId() + "_" + encode(username.get());
     }
 }

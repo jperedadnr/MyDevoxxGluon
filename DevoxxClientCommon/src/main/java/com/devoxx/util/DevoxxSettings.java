@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -120,6 +120,9 @@ public class DevoxxSettings {
     public static final String SAVED_CONFERENCE_NAME = "devoxx_cfp_name";
     public static final String SAVED_CONFERENCE_TYPE = "devoxx_cfp_type";
     public static final String SAVED_ACCOUNT_ID = "devoxx_cfp_account";
+    public static final String SAVED_ACCOUNT_USERNAME = "devoxx_cfp_account_username";
+    public static final String SAVED_ACCOUNT_TOKEN = "devoxx_cfp_account_token";
+    public static final String SAVED_ACCOUNT_EXPIRY = "devoxx_cfp_account_expiry";
     public static final String BADGE_TYPE = "badge-type";
     public static final String BADGE_SPONSOR = "badge-sponsor";
     public static final String RELOAD = "reload";

@@ -1457,3 +1457,14 @@
 .leader-cell > .box > .point {
     -fx-font-size: 1.1em;
 }
+
+/* Authenticate View */
+.authenticate-view .container {
+    -fx-alignment: center;
+    -fx-padding: 0.5em;
+    -fx-spacing: 1em;
+}
+
+.authenticate-view .container > .links {
+    -fx-padding: 0.5em;
+}
