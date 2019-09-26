@@ -75,6 +75,7 @@ import java.util.logging.Logger;
 import static com.devoxx.util.DevoxxSettings.*;
 import static com.devoxx.util.JsonToObject.toSpeaker;
 import static com.devoxx.util.JsonToObject.toSpeakers;
+import static com.devoxx.util.Strings.encode;
 import static com.devoxx.views.helper.Util.*;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -1090,14 +1091,14 @@ public class DevoxxService implements Service {
     private ObservableList<Note> internalRetrieveNotes() {
         if (DevoxxSettings.USE_REMOTE_NOTES) {
             if (isNewCfpURL()) {
-                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(username.get() + "_notes",
+                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(conferenceUserKey() + "_notes",
                         Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
             }
             return DataProvider.retrieveList(cloudDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_notes",
                     Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         } else {
             return DataProvider.retrieveList(localDataClient.createListDataReader(
-                    (isNewCfpURL() ? username.get() : authenticationClient.getAuthenticatedUser().getKey()) + "_notes",
+                    (isNewCfpURL() ? conferenceUserKey() : authenticationClient.getAuthenticatedUser().getKey()) + "_notes",
                     Note.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         }
     }
@@ -1105,13 +1106,14 @@ public class DevoxxService implements Service {
     private ObservableList<Badge> internalRetrieveBadges() {
         if (DevoxxSettings.USE_REMOTE_NOTES) {
             if (isNewCfpURL()) {
-                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(username.get() + "_badges",
+                return DataProvider.retrieveList(newCloudDataClient.createListDataReader(conferenceUserKey() + "_badges",
                         Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
             }
             return DataProvider.retrieveList(cloudDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_badges",
                     Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         } else {
-            return DataProvider.retrieveList(localDataClient.createListDataReader(authenticationClient.getAuthenticatedUser().getKey() + "_badges",
+            return DataProvider.retrieveList(localDataClient.createListDataReader(
+                    (isNewCfpURL() ? conferenceUserKey() : authenticationClient.getAuthenticatedUser().getKey()) + "_badges",
                     Badge.class, SyncFlag.LIST_WRITE_THROUGH, SyncFlag.OBJECT_WRITE_THROUGH));
         }
     }
@@ -1283,5 +1285,9 @@ public class DevoxxService implements Service {
             }
         }
         return true;
+    }
+
+    private String conferenceUserKey() {
+        return getConference().getId() + "_" + encode(username.get());
     }
 }

@@ -26,6 +26,9 @@
 package com.devoxx.util;
 
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 public final class Strings {
 
     public static boolean isNullOrEmpty( String string) {
@@ -38,5 +41,9 @@ public final class Strings {
 
     public static String emptyToNull( String string) {
         return isNullOrEmpty(string) ? null : string;
+    }
+
+    public static String encode(String string) {
+        return Base64.getEncoder().encodeToString(string.getBytes(StandardCharsets.UTF_8));
     }
 }
