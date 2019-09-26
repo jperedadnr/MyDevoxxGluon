@@ -115,7 +115,7 @@ public class SessionsRetriever {
 
         final int talkId = source.getInt("talkId", 0);
         if (talkId != 0) {
-            JsonObject talk = fetchTalk(cfpEndpoint, source);
+            JsonObject talk = createTalk(source);
             builder.add("talk", talk == JsonValue.EMPTY_JSON_OBJECT ? JsonValue.NULL : talk);
         }
         return builder.build();
@@ -144,37 +144,28 @@ public class SessionsRetriever {
         return builder.build();
     }
 
-    private JsonObject fetchTalk(String cfpEndpoint, JsonObject session) {
-        if (talks == null) {
-            final Response response = client.target(cfpEndpoint).path("public").path("talks").request().get();
-            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-                try (JsonReader talksReader = Json.createReader(new StringReader(response.readEntity(String.class)))) {
-                    talks = talksReader.readArray();
-                }
-            }
-        }
-        return talks.getValuesAs(JsonObject.class).stream()
-                .filter(t -> t.getInt("id", 0) == session.getInt("talkId"))
-                .map(t -> updateTalk(t, session.getString("sessionTypeName")))
-                .findFirst().orElse(JsonValue.EMPTY_JSON_OBJECT);
-    }
-
-    private JsonObject updateTalk(JsonObject source, String sessionTypeName) {
+    private JsonObject createTalk(JsonObject source) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
-        builder.add("id",            source.get("id"));
-        builder.add("title",         source.get("title"));
-        builder.add("talkType",      sessionTypeName);
+        builder.add("id",            source.get("talkId"));
+        builder.add("title",         source.get("talkTitle"));
+        builder.add("talkType",      source.get("sessionTypeName"));
         builder.add("track",         source.get("trackName"));
         builder.add("trackId",       source.get("trackId"));
-        builder.add("lang",          "");
-        builder.add("audienceLevel", "");
-        builder.add("summary",       source.get("description"));
+        builder.add("lang",          source.get("langName"));
+        builder.add("audienceLevel", source.get("audienceLevel"));
+        builder.add("summary",       source.get("talkDescription"));
         builder.add("summaryAsHtml", "");
         builder.add("tags",
-                source.containsKey("tags") ? source.getJsonArray("tags") : emptyJsonArray());
+                source.containsKey("tags") ? updateTags(source.getJsonArray("tags")) : emptyJsonArray());
         builder.add("speakers",
                 source.containsKey("speakers") ? updateSpeakers(source.getJsonArray("speakers")) : emptyJsonArray());
         return builder.build();
+    }
+
+    private JsonArray updateTags(JsonArray tags) {
+        return tags.getValuesAs(JsonObject.class).stream()
+                .map(s -> Json.createObjectBuilder().add("value", s.get("name")).build())
+                .collect(JsonCollectors.toJsonArray());
     }
 
     private JsonArray updateSpeakers(JsonArray speakers) {
