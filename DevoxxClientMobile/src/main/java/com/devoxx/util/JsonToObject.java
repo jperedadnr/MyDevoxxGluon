@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019, Gluon Software
  * All rights reserved.
  *
@@ -28,15 +28,18 @@ package com.devoxx.util;
 import com.devoxx.model.Speaker;
 
 import javax.json.JsonObject;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class JsonToObject {
     
     public static List<Speaker> toSpeakers(List<JsonObject> source) {
-        return source.stream()
-                .map(s -> toSpeaker(s))
-                .collect(Collectors.toList());
+        List<Speaker> list = new ArrayList<>();
+        for (JsonObject s : source) {
+            Speaker speaker = toSpeaker(s);
+            list.add(speaker);
+        }
+        return list;
     }
     
     public static Speaker toSpeaker(JsonObject source) {
