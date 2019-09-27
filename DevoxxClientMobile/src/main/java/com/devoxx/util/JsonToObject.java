@@ -26,8 +26,11 @@
 package com.devoxx.util;
 
 import com.devoxx.model.Speaker;
+import com.devoxx.model.Talk;
 
+import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +54,31 @@ public class JsonToObject {
         speaker.setAvatarURL(getNullable(source,"imageUrl"));
         speaker.setCompany(getNullable(source,"company"));
         speaker.setTwitter(getNullable(source, "twitterHandle"));
+        speaker.setAcceptedTalks(toTalks(source.get("proposals")));
         return speaker;
+    }
+
+    private static List<Talk> toTalks(JsonValue proposals) {
+        if (proposals == null || proposals.getValueType() == JsonValue.ValueType.NULL) return null;
+
+        List<Talk> talks = new ArrayList<>();
+        final List<JsonObject> values = ((JsonArray) proposals).getValuesAs(JsonObject.class);
+        for (JsonObject jsonObject : values) {
+            final Talk talk = toTalk(jsonObject);
+            talks.add(talk);
+        }
+        return talks;
+    }
+
+    private static Talk toTalk(JsonObject src) {
+        final Talk talk = new Talk();
+        talk.setId(String.valueOf(src.getInt("id")));
+        talk.setTitle(getNullable(src, "title"));
+        talk.setSummary(getNullable(src, "description"));
+        talk.setTrackId(String.valueOf(src.getInt("trackId")));
+        talk.setTrack(getNullable(src, "trackName"));
+        talk.setTalkType(getNullable(src, "sessionTypeName"));
+        return talk;
     }
 
     private static String getNullable(JsonObject source, String key) {
