@@ -94,7 +94,7 @@ public class AuthenticatePresenter extends GluonPresenter<DevoxxApplication> {
     public void forgetPassword() {
         Services.get(BrowserService.class).ifPresent(b -> {
             try {
-                b.launchExternalBrowser(service.getConference().getCfpURL() + "#/reset/request");
+                b.launchExternalBrowser(forgetPasswordURL());
             }  catch (IOException | URISyntaxException ex) {
                 Toast toast = new Toast(DevoxxBundle.getString("OTN.VISUALS.CONNECTION_FAILED"));
                 toast.show();
@@ -105,7 +105,7 @@ public class AuthenticatePresenter extends GluonPresenter<DevoxxApplication> {
     public void register() {
         Services.get(BrowserService.class).ifPresent(b -> {
             try {
-                b.launchExternalBrowser(service.getConference().getCfpURL() + "#/register");
+                b.launchExternalBrowser(registerURL());
             }  catch (IOException | URISyntaxException ex) {
                 Toast toast = new Toast(DevoxxBundle.getString("OTN.VISUALS.CONNECTION_FAILED"));
                 toast.show();
@@ -162,4 +162,17 @@ public class AuthenticatePresenter extends GluonPresenter<DevoxxApplication> {
         });
     }
 
+    private String forgetPasswordURL() {
+        return cfpURLWithoutAPI() + "#/reset/request";
+    }
+
+    private String registerURL() {
+        return cfpURLWithoutAPI() + "#/register";
+    }
+
+    private String cfpURLWithoutAPI() {
+        String cfpURL = service.getConference().getCfpURL();
+        cfpURL = cfpURL.replace("api", "").replace("//", "/");
+        return cfpURL;
+    }
 }
