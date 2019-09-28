@@ -37,9 +37,8 @@ import com.devoxx.util.DevoxxSettings;
 import com.devoxx.views.cell.BadgeCell;
 import com.devoxx.views.helper.Placeholder;
 import com.devoxx.views.helper.Util;
-import com.gluonhq.charm.down.Services;
-import com.gluonhq.charm.down.plugins.BarcodeScanService;
-import com.gluonhq.charm.down.plugins.SettingsService;
+import com.gluonhq.attach.barcode.BarcodeScanService;
+import com.gluonhq.attach.settings.SettingsService;
 import com.gluonhq.charm.glisten.afterburner.GluonPresenter;
 import com.gluonhq.charm.glisten.application.ViewStackPolicy;
 import com.gluonhq.charm.glisten.control.AppBar;
@@ -87,7 +86,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
             appBar.setTitleText(DevoxxView.SPONSOR_BADGE.getTitle());
             appBar.getMenuItems().setAll(getBadgeChangeMenuItem("Logout"));
 
-            Services.get(SettingsService.class).ifPresent(service -> {
+            SettingsService.create().ifPresent(service -> {
                 final Sponsor sponsor = Sponsor.fromCSV(service.retrieve(DevoxxSettings.BADGE_SPONSOR));
                 if (this.sponsor != null && this.sponsor.equals(sponsor)) {
                     appBar.setTitleText(DevoxxBundle.getString("OTN.SPONSOR.BADGES.FOR", sponsor.getName()));
@@ -125,7 +124,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
                 addBadge(sponsor, badges, Util.getDummyQR());
                 return;
             }
-            Services.get(BarcodeScanService.class).ifPresent(s -> {
+            BarcodeScanService.create().ifPresent(s -> {
                 final Optional<String> scanQr = s.scan(DevoxxBundle.getString("OTN.BADGES.SPONSOR.QR.TITLE", sponsor.getName()), null, null);
                 scanQr.ifPresent(qr -> addBadge(sponsor, badges, qr));
             });
