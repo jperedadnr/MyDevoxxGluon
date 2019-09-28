@@ -1,17 +1,10 @@
-apply plugin: 'base'
-
-buildscript {
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.13.1"
-    }
+plugins {
+    id "com.github.hierynomus.license" version "0.15.0"
 }
 
-ext.charm_down_version = "3.8.5"
+apply plugin: 'base'
+
+ext.attach_version = "4.0.2"
 
 allprojects {
     
@@ -21,7 +14,7 @@ allprojects {
         header = rootProject.file('LICENSE.txt')
         strictCheck true
         skipExistingHeaders true
-        excludes(['**/*.json'])
+        excludes(["**/*.license", "**/*.png", "**/*.fxml", "**/*.jpeg", '**/*.json', '**/*.ttf'])
     }
 }
     

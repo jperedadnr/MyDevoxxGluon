@@ -1,16 +1,23 @@
-repositories {
-    jcenter()
+plugins {
+    id 'org.openjfx.javafxplugin' version '0.0.8'
 }
 
-apply plugin: 'java'
+apply plugin: 'org.openjfx.javafxplugin'
 
 repositories {
-    jcenter()
+    mavenCentral()
     maven {
         url 'http://nexus.gluonhq.com/nexus/content/repositories/releases/'
     }
 }
 
 dependencies {
-    compile "com.gluonhq:charm-down-plugin-settings:$charm_down_version"
+    implementation "com.gluonhq.attach:util:$attach_version"
+    implementation "com.gluonhq.attach:settings:$attach_version"
+    implementation "javax.xml.bind:jaxb-api:2.3.1"
+}
+
+javafx {
+    version = "13"
+    modules = [ "javafx.controls" ]
 }
