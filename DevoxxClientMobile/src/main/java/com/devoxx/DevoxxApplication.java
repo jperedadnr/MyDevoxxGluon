@@ -38,9 +38,13 @@ import com.devoxx.views.SessionsPresenter;
 import com.devoxx.views.helper.ConnectivityUtils;
 import com.devoxx.views.helper.SessionVisuals;
 import com.devoxx.views.layer.ConferenceLoadingLayer;
-import com.gluonhq.charm.down.Platform;
-import com.gluonhq.charm.down.Services;
-import com.gluonhq.charm.down.plugins.*;
+import com.gluonhq.attach.connectivity.ConnectivityService;
+import com.gluonhq.attach.device.DeviceService;
+import com.gluonhq.attach.display.DisplayService;
+import com.gluonhq.attach.settings.SettingsService;
+import com.gluonhq.attach.share.ShareService;
+import com.gluonhq.attach.storage.StorageService;
+import com.gluonhq.attach.util.Platform;
 import com.gluonhq.charm.glisten.afterburner.AppView;
 import com.gluonhq.charm.glisten.afterburner.GluonInstanceProvider;
 import com.gluonhq.charm.glisten.application.MobileApplication;
@@ -59,8 +63,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
+//import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,7 +110,7 @@ public class DevoxxApplication extends MobileApplication {
             view.registerView(this);
         }
 
-        Services.get(SettingsService.class).ifPresent(settings -> {
+        SettingsService.create().ifPresent(settings -> {
             String sign = settings.retrieve(DevoxxSettings.SIGN_UP);
             if (!Strings.isNullOrEmpty(sign)) {
                 signUp = Boolean.parseBoolean(sign);
@@ -119,7 +122,7 @@ public class DevoxxApplication extends MobileApplication {
     public void postInit(Scene scene) {
 
         // Check if conference is set and switch to Sessions view
-        Services.get(SettingsService.class).ifPresent(settingsService -> {
+        SettingsService.create().ifPresent(settingsService -> {
             String conferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
             String conferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
             String conferenceName = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME);
@@ -134,7 +137,7 @@ public class DevoxxApplication extends MobileApplication {
             }
         });
 
-        String deviceFactorSuffix = Services.get(DeviceService.class)
+        String deviceFactorSuffix = DeviceService.create()
                 .map(s -> {
                     if (Platform.isAndroid() && s.getModel() != null) {
                         for (String device : DevoxxSettings.DEVICES_WITH_SANS_CSS) {
@@ -147,7 +150,7 @@ public class DevoxxApplication extends MobileApplication {
                 })
                 .orElse("");
 
-        String formFactorSuffix = Services.get(DisplayService.class)
+        String formFactorSuffix = DisplayService.create()
                 .map(s -> s.isTablet() ? "_tablet" : s.hasNotch() ? "_notch" : "")
                 .orElse("");
 
@@ -183,7 +186,7 @@ public class DevoxxApplication extends MobileApplication {
         });
         
         if (signUp) {
-            Services.get(SettingsService.class).ifPresent(settings -> settings.remove(DevoxxSettings.SIGN_UP));
+            SettingsService.create().ifPresent(settings -> settings.remove(DevoxxSettings.SIGN_UP));
             DevoxxView.SESSIONS.switchView().ifPresent(s -> ((SessionsPresenter) s).selectFavorite());
         }
     }
@@ -199,7 +202,7 @@ public class DevoxxApplication extends MobileApplication {
     }
 
     private void initConnectivityServices() {
-        Services.get(ConnectivityService.class).ifPresent(connectivityService -> {
+        ConnectivityService.create().ifPresent(connectivityService -> {
             connectivityService.connectedProperty().addListener((observable, oldValue, newValue) -> {
                 ConnectivityUtils.showConnectivityIndication(newValue);
             });
@@ -228,8 +231,8 @@ public class DevoxxApplication extends MobileApplication {
     
     public Button getShareButton(BadgeType badgeType, Sponsor sponsor) {
         return MaterialDesignIcon.SHARE.button(e -> {
-            Services.get(ShareService.class).ifPresent(s -> {
-                File root = Services.get(StorageService.class).flatMap(storage -> storage.getPublicStorage("Documents")).orElse(null);
+            ShareService.create().ifPresent(s -> {
+                File root = StorageService.create().flatMap(storage -> storage.getPublicStorage("Documents")).orElse(null);
                 if (root != null) {
                     if (!root.exists()) {
                         root.mkdirs();
@@ -260,12 +263,20 @@ public class DevoxxApplication extends MobileApplication {
                         LOG.log(Level.WARNING, "Error writing csv file ", ex);
                     }
                     s.share(DevoxxBundle.getString("OTN.BADGES.SHARE.SUBJECT", service.getConference().getName()),
-                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(LocalDate.now())),
+//                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(LocalDate.now())),
+                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), LocalDate.now().toString()),
                             "text/plain", file);
                 } else {
                     LOG.log(Level.WARNING, "Error accessing local storage");
                 }
             });
         }); 
+    }
+
+    public static void main(String[] args) {
+        System.setProperty("javafx.pulseLogger", "false");
+        System.setProperty("enable.logging", "true");
+        System.setProperty("file.encoding", "UTF-8");
+        launch(args);
     }
 }
