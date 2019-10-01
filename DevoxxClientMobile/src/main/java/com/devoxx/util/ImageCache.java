@@ -60,7 +60,7 @@ public class ImageCache {
      * 
      * FIXME: Adjust to a lower value if memory issues are still present
      */
-    private static final int MAX_FILE_LENGTH = 2_000_000; // bytes
+    private static final int MAX_FILE_LENGTH = 500_000; // bytes
 
     private static final Cache<String, Image> memoryImageCache;
 
