@@ -337,10 +337,11 @@ public class SessionPresenter extends GluonPresenter<DevoxxApplication> {
         vbox.getStyleClass().add("session-info");
 
         // Check for audience level
-        if (session.getTalk().getAudienceLevel() != null) {
-            Label audienceLevel = fetchLabelForAudienceLevel(session.getTalk().getAudienceLevel());
-            audienceLevel.getStyleClass().add("audience-level");
-            vbox.getChildren().add(audienceLevel);
+        final String audienceLevel = session.getTalk().getAudienceLevel();
+        if (audienceLevel != null && AudienceLevel.contains(audienceLevel)) {
+            Label audienceLevelLabel = fetchLabelForAudienceLevel(audienceLevel);
+            audienceLevelLabel.getStyleClass().add("audience-level");
+            vbox.getChildren().add(audienceLevelLabel);
         }
         if (DevoxxSettings.conferenceHasMultipleLanguages(service.getConference())) {
             vbox.getChildren().add(flag(session));

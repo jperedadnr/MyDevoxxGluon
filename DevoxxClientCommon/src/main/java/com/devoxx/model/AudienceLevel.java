@@ -27,6 +27,8 @@ package com.devoxx.model;
 
 import com.devoxx.util.DevoxxBundle;
 
+import java.util.Arrays;
+
 public enum AudienceLevel {
     BEGINNER     ("OTN.SESSION.AUDIENCE_LEVEL.BEGINNER"),
     INTERMEDIATE ("OTN.SESSION.AUDIENCE_LEVEL.INTERMEDIATE"),
@@ -39,6 +41,23 @@ public enum AudienceLevel {
         this.resourceName = resourceName;
     }
 
+    /**
+     * Checks if a string can be mapped to any of the values in {@link AudienceLevel}.
+     * @param audienceLevel string to test
+     * @return True if the string matches one of the values, else false.
+     */
+    public static boolean contains(String audienceLevel) {
+        try {
+            return Arrays.asList(AudienceLevel.values()).contains(AudienceLevel.valueOf(audienceLevel));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns the text to be displayed for an {@link AudienceLevel}.
+     * @return Text to be displayed for an {@link AudienceLevel}.
+     */
     public String getText() {
         return DevoxxBundle.getString(resourceName);
     }
