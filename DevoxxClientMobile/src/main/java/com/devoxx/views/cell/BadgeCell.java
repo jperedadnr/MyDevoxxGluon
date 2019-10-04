@@ -36,9 +36,10 @@ import com.devoxx.model.Badge;
 import com.devoxx.views.BadgePresenter;
 
 public class BadgeCell<T extends Badge> extends CharmListCell<T> {
+
     private static final int MAX_TEXT_SIZE = 100;
 
-    private final ListTile tile;
+    protected final ListTile tile;
 
     public BadgeCell() {
         tile = new ListTile();

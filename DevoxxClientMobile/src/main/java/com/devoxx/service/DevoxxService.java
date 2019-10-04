@@ -37,6 +37,7 @@ import com.devoxx.views.helper.SessionVisuals.SessionListType;
 import com.devoxx.views.helper.Util;
 import com.devoxx.views.layer.ConferenceLoadingLayer;
 import com.gluonhq.charm.down.Services;
+import com.gluonhq.charm.down.plugins.ConnectivityService;
 import com.gluonhq.charm.down.plugins.DeviceService;
 import com.gluonhq.charm.down.plugins.RuntimeArgsService;
 import com.gluonhq.charm.down.plugins.SettingsService;
@@ -57,6 +58,8 @@ import com.gluonhq.connect.converter.JsonInputConverter;
 import com.gluonhq.connect.converter.JsonIterableInputConverter;
 import com.gluonhq.connect.provider.DataProvider;
 import javafx.beans.property.*;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -935,12 +938,14 @@ public class DevoxxService implements Service {
                 .param("7", ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT))
                 .object();
         GluonObservableObject<String> sponsorBadgeResult = fnSponsorBadge.call(String.class);
-        sponsorBadgeResult.initializedProperty().addListener((obs, ov, nv) -> {
-            if (nv) {
-                LOG.log(Level.INFO, "Response from save sponsor badge: " + sponsorBadgeResult.get());
-            }
+        sponsorBadgeResult.setOnFailed(e -> {
+            LOG.log(Level.WARNING, "Failed to call save sponsor badge: ", e.getSource().getException());
+            retrySaveSponsorBadge(sponsorBadge);
         });
-        sponsorBadgeResult.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to call save sponsor badge: ", e.getSource().getException()));
+        sponsorBadgeResult.setOnSucceeded(e -> {
+            LOG.log(Level.INFO, "Response from save sponsor badge: " + sponsorBadgeResult.get());
+            sponsorBadge.setSync(true);
+        });
     }
 
     @Override
@@ -1289,5 +1294,19 @@ public class DevoxxService implements Service {
 
     private String conferenceUserKey() {
         return getConference().getId() + "_" + encode(username.get());
+    }
+
+    private void retrySaveSponsorBadge(SponsorBadge sponsorBadge) {
+        Services.get(ConnectivityService.class).ifPresent(service -> {
+            service.connectedProperty().addListener(new ChangeListener<Boolean>() {
+                @Override
+                public void changed(ObservableValue<? extends Boolean> o, Boolean ov, Boolean nv) {
+                    if (nv) {
+                        saveSponsorBadge(sponsorBadge);
+                    }
+                    service.connectedProperty().removeListener(this);
+                }
+            });
+        });
     }
 }
