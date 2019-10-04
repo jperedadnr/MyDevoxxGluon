@@ -49,7 +49,6 @@ configurations.all {
 }
 
 jfxmobile {
-    javafxportsVersion = '8.60.13'
     downConfig {
         version charm_down_version
         plugins 'barcode-scan', 'browser', 'cache', 'connectivity', 'device', 'display', 'lifecycle',
