@@ -1468,3 +1468,8 @@
 .authenticate-view .container > .links {
     -fx-padding: 0.5em;
 }
+
+/* SponsorBadge Cell */
+.sponsor-badge-cell .sync-box > .icon-text {
+    -fx-font-size: 0.80em;
+}

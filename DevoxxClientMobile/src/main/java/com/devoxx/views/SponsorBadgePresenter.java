@@ -34,11 +34,12 @@ import com.devoxx.model.SponsorBadge;
 import com.devoxx.service.Service;
 import com.devoxx.util.DevoxxBundle;
 import com.devoxx.util.DevoxxSettings;
-import com.devoxx.views.cell.BadgeCell;
+import com.devoxx.views.cell.SponsorBadgeCell;
 import com.devoxx.views.helper.Placeholder;
 import com.devoxx.views.helper.Util;
 import com.gluonhq.charm.down.Services;
 import com.gluonhq.charm.down.plugins.BarcodeScanService;
+import com.gluonhq.charm.down.plugins.ConnectivityService;
 import com.gluonhq.charm.down.plugins.SettingsService;
 import com.gluonhq.charm.glisten.afterburner.GluonPresenter;
 import com.gluonhq.charm.glisten.application.ViewStackPolicy;
@@ -47,7 +48,10 @@ import com.gluonhq.charm.glisten.control.CharmListView;
 import com.gluonhq.charm.glisten.control.FloatingActionButton;
 import com.gluonhq.charm.glisten.control.Toast;
 import com.gluonhq.charm.glisten.mvc.View;
+import com.gluonhq.charm.glisten.visual.MaterialDesignIcon;
 import com.gluonhq.connect.GluonObservableList;
+import javafx.beans.binding.Bindings;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
@@ -69,6 +73,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
 
     private Sponsor sponsor;
     private FloatingActionButton scan;
+    private Button syncButton;
     private CharmListView<SponsorBadge, String> sponsorBadges = new CharmListView<>();
 
     public void initialize() {
@@ -76,9 +81,11 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
         scan = new FloatingActionButton();
         scan.getStyleClass().add("badge-scanner");
         scan.showOn(sponsorView);
+        
+        syncButton = MaterialDesignIcon.SYNC.button(e -> syncSponsorBadges());
 
         sponsorBadges.setPlaceholder(new Placeholder(EMPTY_LIST_MESSAGE, DevoxxView.SPONSOR_BADGE.getMenuIcon()));
-        sponsorBadges.setCellFactory(param -> new BadgeCell<>());
+        sponsorBadges.setCellFactory(param -> new SponsorBadgeCell());
         sponsorView.setCenter(sponsorBadges);
 
         sponsorView.setOnShowing(event -> {
@@ -106,8 +113,10 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
 
     private void loadSponsorBadges(Sponsor sponsor) {
 
-        final GluonObservableList<SponsorBadge> badges = service.retrieveSponsorBadges(sponsor);
-        badges.setOnSucceeded(e -> {
+        final GluonObservableList<SponsorBadge> badgesList = service.retrieveSponsorBadges(sponsor);
+        ObservableList<SponsorBadge> badges = FXCollections.observableArrayList(SponsorBadge.extractor());
+        Bindings.bindContentBidirectional(badges, badgesList);
+        badgesList.setOnSucceeded(e -> {
             final FilteredList<SponsorBadge> filteredBadges = new FilteredList<>(badges, badge -> {
                 return badge != null && badge.getSponsor() != null && badge.getSponsor().equals(sponsor);
             });
@@ -118,7 +127,7 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
         shareButton.disableProperty().bind(sponsorBadges.itemsProperty().emptyProperty());
         AppBar appBar = getApp().getAppBar();
         appBar.setTitleText(DevoxxBundle.getString("OTN.SPONSOR.BADGES.FOR", sponsor.getName()));
-        appBar.getActionItems().setAll(shareButton);
+        appBar.getActionItems().setAll(syncButton, shareButton);
 
         scan.setOnAction(e -> {
             if (DevoxxSettings.BADGE_TESTS) {
@@ -166,5 +175,22 @@ public class SponsorBadgePresenter extends GluonPresenter<DevoxxApplication> {
         });
         return scanAsDifferentUser;
     }
-    
+
+    private void syncSponsorBadges() {
+        Services.get(ConnectivityService.class).ifPresent(connectivityService -> {
+            final Toast toast = new Toast();
+            if (connectivityService.isConnected()) {
+                toast.setMessage(DevoxxBundle.getString("OTN.SPONSOR.BADGES.SYNC"));
+                toast.show();
+                for (SponsorBadge sponsorBadge : service.retrieveSponsorBadges(sponsor)) {
+                    if (!sponsorBadge.isSync()) {
+                        service.saveSponsorBadge(sponsorBadge);
+                    }
+                }
+            } else {
+                toast.setMessage(DevoxxBundle.getString("OTN.VISUALS.NO_INTERNET"));
+                toast.show();
+            }
+        });
+    }
 }

@@ -25,10 +25,14 @@
  */
 package com.devoxx.model;
 
+import javafx.beans.Observable;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.util.Callback;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -79,6 +83,18 @@ public class SponsorBadge extends Badge {
     public final void setDateTime(long value) {
         dateTime.set(value);
     }
+    
+    // syncProperty
+    private final BooleanProperty sync = new SimpleBooleanProperty(this, "sync", false);
+    public final BooleanProperty syncProperty() {
+       return sync;
+    }
+    public final boolean isSync() {
+       return sync.get();
+    }
+    public final void setSync(boolean value) {
+        sync.set(value);
+    }
 
     @Override
     public boolean contains(String keyword) {
@@ -103,7 +119,8 @@ public class SponsorBadge extends Badge {
         SponsorBadge that = (SponsorBadge) o;
         return Objects.equals(getBadgeId(), that.getBadgeId()) &&
                 Objects.equals(getSponsor(), that.getSponsor()) &&
-                Objects.equals(getDateTime(), that.getDateTime());
+                Objects.equals(getDateTime(), that.getDateTime()) &&
+                Objects.equals(isSync(), that.isSync());
     }
 
     @Override
@@ -119,5 +136,11 @@ public class SponsorBadge extends Badge {
             csv.append(",").append(safeStr(DATE_TIME_FORMATTER.format(new Timestamp(getDateTime()))));
         }
         return csv.toString();
+    }
+
+    public static Callback<SponsorBadge, Observable[]> extractor() {
+        return param -> new Observable[] {
+                param.syncProperty()
+        };
     }
 }
