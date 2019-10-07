@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2016, 2017, Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -45,6 +45,7 @@ public class Session extends Searchable {
     private Talk talk;
     private boolean decorated;
     private boolean showSessionType;
+    private int totalFavourites;
 
     public Session() {}
 
@@ -173,6 +174,14 @@ public class Session extends Searchable {
 
     public void setShowSessionType(boolean showSessionType) {
         this.showSessionType = showSessionType;
+    }
+
+    public int getTotalFavourites() {
+        return totalFavourites;
+    }
+
+    public void setTotalFavourites(int totalFavourites) {
+        this.totalFavourites = totalFavourites;
     }
 
     @Override

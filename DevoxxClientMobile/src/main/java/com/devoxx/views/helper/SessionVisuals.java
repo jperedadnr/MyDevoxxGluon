@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -156,6 +156,11 @@ public class SessionVisuals {
     }
 
     public Favorite getFavoriteFor(Session session) {
+        if (service.isNewCfpURL()) {
+            final Favorite favorite = new Favorite();
+            favorite.setFavs(session.getTotalFavourites());
+            return favorite;
+        }
         Optional<Favorite> favorite = Optional.empty();
         for (Favorite fav : service.retrieveFavorites()) {
             if (fav.getId().equals(session.getTalk().getId())) {
