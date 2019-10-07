@@ -32,25 +32,23 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 
 public class SponsorBadgeCell extends BadgeCell<SponsorBadge> {
+
+    private final AnchorPane anchorPane;
     
     public SponsorBadgeCell() {
+        final Node graphic = MaterialDesignIcon.SYNC_PROBLEM.graphic();
+        anchorPane = new AnchorPane(graphic);
+        anchorPane.getStyleClass().add("sync-box");
+        AnchorPane.setTopAnchor(graphic, 2.0);
+        AnchorPane.setRightAnchor(graphic, 2.0);
+        final StackPane secondaryGraphic = new StackPane(anchorPane, MaterialDesignIcon.CHEVRON_RIGHT.graphic());
+        tile.setSecondaryGraphic(secondaryGraphic);
         getStyleClass().add("sponsor-badge-cell");
     }
 
     @Override
     public void updateItem(SponsorBadge badge, boolean empty) {
         super.updateItem(badge, empty);
-
-        final Node graphic = MaterialDesignIcon.SYNC_PROBLEM.graphic();
-        final AnchorPane anchorPane = new AnchorPane(graphic);
-        anchorPane.getStyleClass().add("sync-box");
-        AnchorPane.setTopAnchor(graphic, 2.0);
-        AnchorPane.setRightAnchor(graphic, 2.0);
-        if (badge.isSync()) {
-            anchorPane.setVisible(false);
-        }
-
-        final StackPane secondaryGraphic = new StackPane(anchorPane, MaterialDesignIcon.CHEVRON_RIGHT.graphic());
-        tile.setSecondaryGraphic(secondaryGraphic);
+        anchorPane.setVisible(!badge.isSync());
     }
 }
