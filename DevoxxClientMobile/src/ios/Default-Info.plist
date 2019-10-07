@@ -5,9 +5,9 @@
         <key>CFBundleIdentifier</key>
         <string>com.devoxx.mydevoxx.swift</string>
         <key>CFBundleVersion</key>
-        <!-- buildnumber --><string>387</string>
+        <!-- buildnumber --><string>388</string>
         <key>CFBundleShortVersionString</key>
-        <!-- versionnumber --><string>3.6.0</string>
+        <!-- versionnumber --><string>3.6.1</string>
         <key>CFBundleExecutable</key>
         <string>DevoxxClient</string>
         <key>CFBundleIconName</key>
