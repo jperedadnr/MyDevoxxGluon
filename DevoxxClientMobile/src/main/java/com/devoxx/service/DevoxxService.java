@@ -1298,15 +1298,17 @@ public class DevoxxService implements Service {
 
     private void retrySaveSponsorBadge(SponsorBadge sponsorBadge) {
         Services.get(ConnectivityService.class).ifPresent(service -> {
-            service.connectedProperty().addListener(new ChangeListener<Boolean>() {
-                @Override
-                public void changed(ObservableValue<? extends Boolean> o, Boolean ov, Boolean nv) {
-                    if (nv) {
-                        saveSponsorBadge(sponsorBadge);
+            if (!service.isConnected()) {
+                service.connectedProperty().addListener(new ChangeListener<Boolean>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Boolean> o, Boolean ov, Boolean nv) {
+                        if (nv) {
+                            saveSponsorBadge(sponsorBadge);
+                        }
+                        service.connectedProperty().removeListener(this);
                     }
-                    service.connectedProperty().removeListener(this);
-                }
-            });
+                });
+            }
         });
     }
 }
