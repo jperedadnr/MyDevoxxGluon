@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'org.javafxports:jfxmobile-plugin:1.3.17'
+        classpath 'org.javafxports:jfxmobile-plugin:1.3.18'
     }
 }
 
@@ -35,11 +35,11 @@ applicationDefaultJvmArgs = [
 
 dependencies {
     compile project(':DevoxxClientCommon')
-    
+
     compile 'com.gluonhq:glisten-afterburner:1.4.1'
     compile 'com.gluonhq:charm-glisten-connect-view:5.0.2'
     compile 'com.gluonhq:charm-cloudlink-client:4.5.2'
-    compile 'com.gluonhq:maps:1.0.2'
+    compile 'com.gluonhq:maps:1.0.4'
 }
 
 configurations.all {
@@ -49,7 +49,6 @@ configurations.all {
 }
 
 jfxmobile {
-    javafxportsVersion = '8.60.13'
     downConfig {
         version charm_down_version
         plugins 'barcode-scan', 'browser', 'cache', 'connectivity', 'device', 'display', 'lifecycle',
