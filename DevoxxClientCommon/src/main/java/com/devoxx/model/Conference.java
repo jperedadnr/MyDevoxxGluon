@@ -399,7 +399,9 @@ public class Conference {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Conference that = (Conference) o;
-        return Objects.equals(id, that.id);
+        return Objects.equals(id, that.id) &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(cfpURL, that.cfpURL);
     }
 
     @Override
