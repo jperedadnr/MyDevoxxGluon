@@ -401,6 +401,7 @@ public class DevoxxService implements Service {
     public GluonObservableObject<Conference> retrieveConference(String conferenceId, String cfpURL) {
         RemoteFunctionObject fnConference = RemoteFunctionBuilder.create("conference")
                 .param("id", conferenceId)
+                .param("cfpEndpoint", cfpURL)
                 .object();
         GluonObservableObject<Conference> conference = fnConference.call(Conference.class);
 
