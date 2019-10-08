@@ -72,6 +72,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -743,8 +744,13 @@ public class DevoxxService implements Service {
 
     @Override
     public GluonObservableList<Sponsor> retrieveSponsors() {
+        // Sponsors still use the id from the conferences list
+        AtomicReference<String> configuredConferenceId = new AtomicReference<>();
+        Services.get(SettingsService.class).ifPresent(settingsService -> {
+            configuredConferenceId.set(settingsService.retrieve(SAVED_CONFERENCE_ID));
+        });
         RemoteFunctionList fnSponsors = RemoteFunctionBuilder.create("sponsors")
-                .param("conferenceId", getConference().getId())
+                .param("conferenceId", configuredConferenceId.get())
                 .list();
         GluonObservableList<Sponsor> badgeSponsorsList = fnSponsors.call(Sponsor.class);
         badgeSponsorsList.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sponsors"), e.getSource().getException()));
