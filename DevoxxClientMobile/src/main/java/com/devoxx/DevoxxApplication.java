@@ -138,7 +138,7 @@ public class DevoxxApplication extends MobileApplication {
                 .map(s -> {
                     if (Platform.isAndroid() && s.getModel() != null) {
                         for (String device : DevoxxSettings.DEVICES_WITH_SANS_CSS) {
-                            if (s.getModel().toLowerCase(Locale.ROOT).startsWith(device)) {
+                            if (s.getModel().toLowerCase(Locale.ROOT).contains(device)) {
                                 return "_sans";
                             }
                         }
