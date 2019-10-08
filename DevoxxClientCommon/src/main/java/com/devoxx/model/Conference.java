@@ -25,6 +25,8 @@
  */
 package com.devoxx.model;
 
+import com.devoxx.util.Strings;
+
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -191,7 +193,7 @@ public class Conference {
     }
 
     public void setEventType(String eventType) {
-        this.eventType = Type.valueOf(eventType);
+        this.eventType = Strings.isNullOrEmpty(eventType) ? Type.DEVOXX : Type.valueOf(eventType);
     }
 
     public String getCfpURL() {
@@ -399,7 +401,9 @@ public class Conference {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Conference that = (Conference) o;
-        return Objects.equals(id, that.id);
+        return Objects.equals(id, that.id) &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(cfpURL, that.cfpURL);
     }
 
     @Override
