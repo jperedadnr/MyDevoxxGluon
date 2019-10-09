@@ -80,6 +80,9 @@ public class BadgePresenter extends GluonPresenter<DevoxxApplication> {
     private ChangeListener<String> detailsChangeListener = (observable, oldValue, newValue) -> {
         if (newValue != null && !newValue.isEmpty()) {
             textChanged = true;
+            if (badge instanceof SponsorBadge) {
+                ((SponsorBadge) badge).setSync(false);
+            }
         }
     };
 
