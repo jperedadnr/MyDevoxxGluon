@@ -420,7 +420,15 @@ public class DevoxxService implements Service {
                     ready.set(true);
                 }
             });
-            conference.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException()));
+            conference.setOnFailed(e -> {
+                if (conference.get() != null) {
+                    // cfpURL is no longer a part of conference
+                    // we need to manually set it
+                    conference.get().setCfpURL(cfpURL);
+                    setConference(conference.get());
+                }
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException());
+            });
         }
 
         return conference;
@@ -555,6 +563,7 @@ public class DevoxxService implements Service {
             
             GluonObservableList<JsonObject> speakersList = fnSpeakers.call(JsonObject.class);
             speakersList.setOnFailed(e -> {
+                speakers.setAll(toSpeakers(speakersList));
                 retrievingSpeakers.set(false);
                 LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakersV2"), e.getSource().getException());
             });
@@ -571,6 +580,7 @@ public class DevoxxService implements Service {
 
             GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
             speakersList.setOnFailed(e -> {
+                speakers.setAll(speakersList);
                 retrievingSpeakers.set(false);
                 LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
             });
@@ -602,11 +612,12 @@ public class DevoxxService implements Service {
                             .object();
 
                     GluonObservableObject<JsonObject> gluonSpeaker = fnSpeaker.call(JsonObject.class);
-                    gluonSpeaker.setOnFailed(e -> {
-                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
-                    });
                     gluonSpeaker.setOnSucceeded(e -> {
                         updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                    });
+                    gluonSpeaker.setOnFailed(e -> {
+                        updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
                     });
                 } else {
                     RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
@@ -619,7 +630,10 @@ public class DevoxxService implements Service {
                     gluonSpeaker.setOnSucceeded(e -> {
                         updateSpeakerDetails(gluonSpeaker.get());
                     });
-                    gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
+                    gluonSpeaker.setOnFailed(e -> {
+                        updateSpeakerDetails(gluonSpeaker.get());
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException());
+                    });
                     return gluonSpeaker;
                 }
             }
@@ -660,6 +674,7 @@ public class DevoxxService implements Service {
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {
+        if (updatedSpeaker == null) return;
         for (Speaker speaker : speakers) {
             if (speaker.getUuid().equals(updatedSpeaker.getUuid())) {
                 speaker.setAcceptedTalks(updatedSpeaker.getAcceptedTalks());
