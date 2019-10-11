@@ -1105,6 +1105,10 @@ public class DevoxxService implements Service {
         return authenticationClient.getAuthenticatedUser();
     }
 
+    public String getUsername() {
+        return username.get();
+    }
+
     @Override
     public void sendFeedback(Feedback feedback) {
         RemoteFunctionObject fnSendFeedback = RemoteFunctionBuilder.create("sendFeedback")

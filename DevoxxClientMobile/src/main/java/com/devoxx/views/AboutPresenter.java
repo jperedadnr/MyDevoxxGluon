@@ -114,10 +114,14 @@ public class AboutPresenter extends GluonPresenter<DevoxxApplication> {
         StringBuilder debug = new StringBuilder();
         debug.append(service.getCfpUserUid()).append("\n");
         if (service.isAuthenticated()) {
-            User user = service.getAuthenticatedUser();
-            debug.append(user.getEmail()).append("\n");
-            debug.append(user.getLoginMethod().name()).append("\n");
-            debug.append(user.getNetworkId()).append("\n");
+            if (!service.isNewCfpURL()) {
+                User user = service.getAuthenticatedUser();
+                debug.append(user.getEmail()).append("\n");
+                debug.append(user.getLoginMethod().name()).append("\n");
+                debug.append(user.getNetworkId()).append("\n");
+            } else {
+                debug.append(service.getUsername()).append("\n");
+            }
         } else {
             debug.append("no user authenticated\n");
         }

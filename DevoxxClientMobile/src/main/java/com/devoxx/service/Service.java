@@ -285,6 +285,8 @@ public interface Service {
      */
     User getAuthenticatedUser();
 
+    public String getUsername();
+
     /**
      * Returns the cfp user uid, if present. Otherwise, returns null.
      * @return the cfp user uid, if present.
