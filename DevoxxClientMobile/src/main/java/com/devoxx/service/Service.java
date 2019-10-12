@@ -286,6 +286,12 @@ public interface Service {
     User getAuthenticatedUser();
 
     /**
+     * Returns the username of the authenticated cfp.dev user if logged in. Otherwise, returns null.
+     * @return the username, if logged in.
+     */
+    public String getUsername();
+
+    /**
      * Returns the cfp user uid, if present. Otherwise, returns null.
      * @return the cfp user uid, if present.
      */
