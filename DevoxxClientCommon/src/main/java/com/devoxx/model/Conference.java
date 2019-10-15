@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2016, 2018 Gluon Software
+/*
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -69,7 +69,12 @@ public class Conference {
     private boolean cfpActive;
     private long locationId;
     private String locationName;
+    private String locationAddress;
+    private String locationCity;
+    private String locationCountry;
     private String timezone;
+    private double venueLongitude;
+    private double venueLatitude;
     private String cfpAdminEmail;
     private String maxProposals;
     private boolean myBadgeActive;
@@ -244,6 +249,30 @@ public class Conference {
         this.locationName = locationName;
     }
 
+    public String getLocationAddress() {
+        return locationAddress;
+    }
+
+    public void setLocationAddress(String locationAddress) {
+        this.locationAddress = locationAddress;
+    }
+
+    public String getLocationCity() {
+        return locationCity;
+    }
+
+    public void setLocationCity(String locationCity) {
+        this.locationCity = locationCity;
+    }
+
+    public String getLocationCountry() {
+        return locationCountry;
+    }
+
+    public void setLocationCountry(String locationCountry) {
+        this.locationCountry = locationCountry;
+    }
+
     public String getTimezone() {
         return timezone;
     }
@@ -260,6 +289,22 @@ public class Conference {
         if (this.fromDate != null && this.endDate != null && this.timezoneId != null) {
             calculateConferenceDays();
         }
+    }
+
+    public double getVenueLongitude() {
+        return venueLongitude;
+    }
+
+    public void setVenueLongitude(double venueLongitude) {
+        this.venueLongitude = venueLongitude;
+    }
+
+    public double getVenueLatitude() {
+        return venueLatitude;
+    }
+
+    public void setVenueLatitude(double venueLatitude) {
+        this.venueLatitude = venueLatitude;
     }
 
     public String getCfpAdminEmail() {

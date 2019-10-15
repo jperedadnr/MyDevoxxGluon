@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019, Gluon Software
  * All rights reserved.
  *
@@ -57,7 +57,13 @@ public class ConferenceUtil {
         builder.add("archived",         conf.getBoolean("archived", true));
         builder.add("cfpActive",        conf.getBoolean("live", false));
         builder.add("locationId",       conf.getInt("locationId", 0));
+        builder.add("locationName",     conf.getString("locationName", ""));
+        builder.add("locationAddress",  conf.getString("locationAddress", ""));
+        builder.add("locationCity",     conf.getString("locationCity", ""));
+        builder.add("locationCountry",  conf.getString("locationCountry", ""));
         builder.add("timezone",         conf.getString("timezone", ""));
+        builder.add("venueLongitude",   conf.getJsonNumber("venueLongitude"));
+        builder.add("venueLatitude",    conf.getJsonNumber("venueLatitude"));
         builder.add("cfpAdminEmail",    conf.getString("cfpAdminEmail", ""));
         builder.add("maxProposals",     conf.getString("maxProposals", ""));
         builder.add("myBadgeActive",    conf.getBoolean("myBadgeActive", true));
