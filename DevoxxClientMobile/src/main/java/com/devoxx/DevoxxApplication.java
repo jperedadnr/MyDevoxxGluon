@@ -119,20 +119,10 @@ public class DevoxxApplication extends MobileApplication {
     public void postInit(Scene scene) {
 
         // Check if conference is set and switch to Sessions view
-        Services.get(SettingsService.class).ifPresent(settingsService -> {
-            String conferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
-            String conferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
-            String conferenceName = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME);
-            String conferenceType = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_TYPE);
-            if (conferenceId != null && conferenceName != null && conferenceType != null) {
-                Conference conference = new Conference();
-                conference.setId(conferenceId);
-                conference.setCfpURL(conferenceCfpURL);
-                conference.setName(conferenceName);
-                conference.setEventType(conferenceType);
-                ConferenceLoadingLayer.show(service, conference);
-            }
-        });
+        final Conference conference = service.createConferenceFromLocalStorage();
+        if (conference.getId() != null && conference.getName() != null && conference.getEventType() != null) {
+            ConferenceLoadingLayer.show(service, conference);
+        }
 
         String deviceFactorSuffix = Services.get(DeviceService.class)
                 .map(s -> {

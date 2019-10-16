@@ -176,13 +176,13 @@ public class ConferenceCell extends CharmListCell<Conference> {
             content.setOnMouseReleased(e -> {
                 if (!item.equals(service.getConference())) {
                     ConferenceLoadingLayer.show(service, item);
-                    service.retrieveConference(item.getId(), item.getCfpURL());
                     Services.get(SettingsService.class).ifPresent(settingsService -> {
                         settingsService.store(DevoxxSettings.SAVED_CONFERENCE_TYPE, item.getEventType().name());
                         settingsService.store(DevoxxSettings.SAVED_CONFERENCE_ID, String.valueOf(item.getId()));
                         settingsService.store(DevoxxSettings.SAVED_CONFERENCE_CFP_URL, String.valueOf(item.getCfpURL()));
                         settingsService.store(DevoxxSettings.SAVED_CONFERENCE_NAME, String.valueOf(item.getName()));
                     });
+                    service.retrieveConference(item.getId(), item.getCfpURL());
                 } else {
                     DevoxxView.SESSIONS.switchView();
                 }
