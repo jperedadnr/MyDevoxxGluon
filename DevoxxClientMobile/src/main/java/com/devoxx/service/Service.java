@@ -91,6 +91,12 @@ public interface Service {
      */
     Conference getConference();
 
+    /**
+     * Creates and returns a conference object from private storage
+     * @return Conference information from private storage
+     */
+    Conference createConferenceFromLocalStorage();
+
     ReadOnlyObjectProperty<Conference> conferenceProperty();
 
     /**
