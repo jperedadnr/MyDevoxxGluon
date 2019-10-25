@@ -132,6 +132,6 @@ public class ConferenceUtil {
     }
     
     public static boolean isNewCfpURL(String cfp) {
-        return cfp.matches(".+?(?=.cfp.dev)(.*)");
+        return cfp.matches(".+?(?=.cfp.dev/api)(.*)");
     }
 }
