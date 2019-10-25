@@ -689,7 +689,7 @@ public class DevoxxService implements Service {
     }
 
     private boolean isNewCfpURL(String cfp) {
-        return cfp.matches(".+?(?=.cfp.dev)(.*)");
+        return cfp.matches(".+?(?=.cfp.dev/api)(.*)");
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {
