@@ -25,6 +25,9 @@
  */
 package com.gluonhq.devoxx.serverless.sessions;
 
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Whitelist;
+
 import javax.json.*;
 import javax.json.stream.JsonCollectors;
 import javax.ws.rs.WebApplicationException;
@@ -154,13 +157,17 @@ public class SessionsRetriever {
         builder.add("trackId",       source.get("trackId"));
         builder.add("lang",          source.get("langName"));
         builder.add("audienceLevel", source.get("audienceLevel"));
-        builder.add("summary",       source.get("talkDescription"));
-        builder.add("summaryAsHtml", "");
+        builder.add("summary",       removeHTMLTags(source.getString("talkDescription")));
+        builder.add("summaryAsHtml", source.get("talkDescription"));
         builder.add("tags",
                 source.containsKey("tags") ? updateTags(source.getJsonArray("tags")) : emptyJsonArray());
         builder.add("speakers",
                 source.containsKey("speakers") ? updateSpeakers(source.getJsonArray("speakers")) : emptyJsonArray());
         return builder.build();
+    }
+
+    private String removeHTMLTags(String talkDescription) {
+        return Jsoup.clean(talkDescription, Whitelist.none());
     }
 
     private JsonArray updateTags(JsonArray tags) {

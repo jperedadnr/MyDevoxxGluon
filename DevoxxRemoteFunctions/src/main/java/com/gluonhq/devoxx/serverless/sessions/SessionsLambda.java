@@ -44,7 +44,7 @@ public class SessionsLambda implements RequestStreamHandler {
 
     private static final String CONFERENCE_ID_OLD = "\"65\"";
     private static final String CFP_ENDPOINT_OLD = "https://vxdbanff19.confinabox.com/api";
-    private static final String CFP_ENDPOINT_NEW = "https://vxdms2019.cfp.dev/api/";
+    private static final String CFP_ENDPOINT_NEW = "https://dvbe19.cfp.dev/api/";
 
     public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
         String conferenceId, cfpEndpoint;
