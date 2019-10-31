@@ -39,7 +39,7 @@ public class ConferenceLambda implements RequestStreamHandler {
 
     private static final String ID_OLD = "\"65\"";
     private static final String CFP_ENDPOINT_OLD = "https://www.devoxxians.com/api/public/events/";
-    private static final String CFP_ENDPOINT_NEW = "https://vxdms2019.cfp.dev/api/";
+    private static final String CFP_ENDPOINT_NEW = "https://dvbe19.cfp.dev/api/";
 
     @Override
     public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {

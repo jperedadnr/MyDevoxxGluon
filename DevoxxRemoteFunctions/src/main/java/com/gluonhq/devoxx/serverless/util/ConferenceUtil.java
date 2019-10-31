@@ -34,7 +34,7 @@ import javax.json.stream.JsonCollectors;
 
 public class ConferenceUtil {
     
-    public static JsonObject createCleanResponseForClientFromNewEndpoint(JsonObject conf) {
+    public static JsonObject createCleanResponseForClientFromNewEndpoint(JsonObject conf, JsonArray floorPlans) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         builder.add("id",               conf.getInt("id", 0));
         builder.add("name",             conf.getString("name", ""));
@@ -77,8 +77,7 @@ public class ConferenceUtil {
                 conf.containsKey("sessionTypes") ? getSessionTypes(conf) : emptyJsonArray());
         builder.add("languages",
                 conf.containsKey("languages") ? conf.getJsonArray("languages") : emptyJsonArray());
-        builder.add("floorPlans", 
-                conf.containsKey("floorPlans") ? conf.getJsonArray("floorPlans") : emptyJsonArray());
+        builder.add("floorPlans", floorPlans);
         return builder.build();
     }
 
