@@ -26,6 +26,8 @@
 package com.gluonhq.devoxx.serverless.sessions;
 
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Whitelist;
 
 import javax.json.*;
@@ -167,7 +169,10 @@ public class SessionsRetriever {
     }
 
     private String removeHTMLTags(String talkDescription) {
-        return Jsoup.clean(talkDescription, Whitelist.none());
+        Document dirty = Jsoup.parse(talkDescription);
+        Cleaner cleaner = new Cleaner(Whitelist.none());
+        Document clean = cleaner.clean(dirty);
+        return clean.body().text();
     }
 
     private JsonArray updateTags(JsonArray tags) {
