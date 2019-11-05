@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2019, Gluon Software
  * All rights reserved.
  *
@@ -23,9 +23,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.gluonhq.devoxx.serverless.conference;
-
-import com.gluonhq.devoxx.serverless.util.FloorPlansRetriever;
+package com.gluonhq.devoxx.serverless.util;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -40,33 +38,24 @@ import java.util.logging.Logger;
 
 import static com.gluonhq.devoxx.serverless.util.ConferenceUtil.*;
 
-public class ConferenceRetriever {
+public class FloorPlansRetriever {
 
-    private static final Logger LOGGER = Logger.getLogger(ConferenceRetriever.class.getName());
-
+    private static final Logger LOGGER = Logger.getLogger(FloorPlansRetriever.class.getName());
     private static final Client client = ClientBuilder.newClient();
 
-    public String retrieve(String cfpEndpoint, String id) {
-
+    public JsonArray retrieve(String cfpEndpoint) {
         WebTarget target = client.target(cfpEndpoint);
         if (isNewCfpURL(cfpEndpoint)) {
-            target = target.path("public").path("event");
-        } else {
-            target = target.path(id);
+            target = target.path("public").path("floorplans");
         }
-        Response conferences = target.request().get();
-        if (conferences.getStatus() == Response.Status.OK.getStatusCode()) {
-            try (JsonReader conferenceReader = Json.createReader(new StringReader(conferences.readEntity(String.class)))) {
-                if (isNewCfpURL(cfpEndpoint)) {
-                    final JsonArray floorPlans = new FloorPlansRetriever().retrieve(cfpEndpoint);
-                    return createCleanResponseForClientFromNewEndpoint(conferenceReader.readObject(), floorPlans).toString();
-                } else {
-                    return createCleanResponseForClientFromOldEndpoint(conferenceReader.readObject()).toString();
-                }
+        Response floorPlans = target.request().get();
+        if (floorPlans.getStatus() == Response.Status.OK.getStatusCode()) {
+            try (JsonReader floorPlansReader = Json.createReader(new StringReader(floorPlans.readEntity(String.class)))) {
+                return floorPlansReader.readArray();
             }
         } else {
-            LOGGER.log(Level.WARNING, "Retrieval of conferences failed with", conferences.getStatus());
+            LOGGER.log(Level.WARNING, "Retrieval of floor plans failed with", floorPlans.getStatus());
         }
-        return Json.createArrayBuilder().build().toString();
+        return Json.createArrayBuilder().build();
     }
 }

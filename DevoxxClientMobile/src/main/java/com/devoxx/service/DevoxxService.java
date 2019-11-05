@@ -258,15 +258,15 @@ public class DevoxxService implements Service {
         });
 
         Services.get(SettingsService.class).ifPresent(settingsService -> {
-            String configuredConferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
-            String configuredConferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
+            String configuredConferenceId = settingsService.retrieve(SAVED_CONFERENCE_ID);
+            String configuredConferenceCfpURL = settingsService.retrieve(SAVED_CONFERENCE_CFP_URL);
             if (configuredConferenceId != null) {
                 if (isNumber(configuredConferenceId)) {
                     retrieveConference(configuredConferenceId, configuredConferenceCfpURL);
                 } else {
                     LOG.log(Level.WARNING, "Found old conference id format, removing it");
                     clearCfpAccount();
-                    settingsService.remove(DevoxxSettings.SAVED_CONFERENCE_ID);
+                    settingsService.remove(SAVED_CONFERENCE_ID);
                 }
             }
 
@@ -428,9 +428,28 @@ public class DevoxxService implements Service {
                     setConference(conference.get());
                 }
                 LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException());
+                switchToConfSelectorAndShowAlert();
             });
         }
 
+        return conference;
+    }
+
+    @Override
+    public Conference createConferenceFromLocalStorage() {
+        Conference conference = new Conference();
+        Services.get(SettingsService.class).ifPresent(settingsService -> {
+            String conferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
+            String conferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
+            String conferenceName = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME);
+            String conferenceType = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_TYPE);
+            if (conferenceId != null && conferenceCfpURL != null) {
+                conference.setId(conferenceId);
+                conference.setCfpURL(conferenceCfpURL);
+                conference.setName(conferenceName);
+                conference.setEventType(conferenceType);
+            }
+        });
         return conference;
     }
 
@@ -670,7 +689,7 @@ public class DevoxxService implements Service {
     }
 
     private boolean isNewCfpURL(String cfp) {
-        return cfp.matches(".+?(?=.cfp.dev)(.*)");
+        return cfp.matches(".+?(?=.cfp.dev/api)(.*)");
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {
@@ -1335,6 +1354,25 @@ public class DevoxxService implements Service {
                     }
                 });
             }
+        });
+    }
+
+    private void switchToConfSelectorAndShowAlert() {
+        final Conference conferenceDetails = createConferenceFromLocalStorage();
+        ConferenceLoadingLayer.hide(conferenceDetails);
+        DevoxxView.CONF_SELECTOR.switchView();
+        Alert alert = new Alert(javafx.scene.control.Alert.AlertType.WARNING);
+        alert.setContentText(String.format(DevoxxBundle.getString("OTN.DIALOG.CONF_ISSUE"), conferenceDetails.getName()));
+        alert.setOnCloseRequest(cr -> clearConferenceDetails());
+        alert.showAndWait();
+    }
+
+    private void clearConferenceDetails() {
+        Services.get(SettingsService.class).ifPresent(settingsService -> {
+            settingsService.remove(SAVED_CONFERENCE_ID);
+            settingsService.remove(SAVED_CONFERENCE_CFP_URL);
+            settingsService.remove(SAVED_CONFERENCE_NAME);
+            settingsService.remove(SAVED_CONFERENCE_TYPE);
         });
     }
 }

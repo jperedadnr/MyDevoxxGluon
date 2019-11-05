@@ -33,6 +33,7 @@ dependencies {
     compile "org.glassfish:javax.json:1.1"
     compile 'com.amazonaws:aws-lambda-java-core:1.1.0'
     compile 'com.amazonaws:aws-java-sdk-ses:1.11.368'
+    compile 'org.jsoup:jsoup:1.12.1'
 }
 
 task conferenceZip(type: Zip) {
