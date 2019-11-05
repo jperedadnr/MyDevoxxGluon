@@ -6,7 +6,7 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
-        classpath "jp.classmethod.aws:gradle-aws-plugin:0.+"
+        classpath "jp.classmethod.aws:gradle-aws-plugin:0.41"
     }
 }
 
@@ -16,10 +16,6 @@ apply plugin: 'jp.classmethod.aws.lambda'
 aws {
     profileName = "default"
     region = "eu-west-1"
-}
-
-lambda {
-    region = "us-east-1"
 }
 
 repositories {
@@ -50,7 +46,7 @@ task conferenceZip(type: Zip) {
 
 task updateConferenceLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: conferenceZip) {
     functionName = "devoxxConference"
-    zipFile = new File("$buildDir/distributions/conference.zip")
+    zipFile = conferenceZip.archivePath
 }
 
 task conferencesZip(type: Zip) {
@@ -67,7 +63,7 @@ task conferencesZip(type: Zip) {
 
 task updateConferencesLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: conferencesZip) {
     functionName = "devoxxAllConferences"
-    zipFile = new File("$buildDir/distributions/conferences.zip")
+    zipFile = conferencesZip.archivePath
 }
 
 task feedbackZip(type: Zip) {
@@ -83,7 +79,7 @@ task feedbackZip(type: Zip) {
 
 task updateFeedbackLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: feedbackZip) {
     functionName = "devoxxSendFeedback"
-    zipFile = new File("$buildDir/distributions/conferences.zip")
+    zipFile = feedbackZip.archivePath
 }
 
 task sessionsZip(type: Zip) {
@@ -100,7 +96,7 @@ task sessionsZip(type: Zip) {
 
 task updateSessionsLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: sessionsZip) {
     functionName = "devoxxRetrieveSessionsV2"
-    zipFile = new File("$buildDir/distributions/sessions.zip")
+    zipFile = sessionsZip.archivePath
 }
 
 task verifyaccountZip(type: Zip) {
@@ -116,7 +112,7 @@ task verifyaccountZip(type: Zip) {
 
 task updateVerifyaccountLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: verifyaccountZip) {
     functionName = "devoxxAccountCredentials"
-    zipFile = new File("$buildDir/distributions/verifyaccount.zip")
+    zipFile = verifyaccountZip.archivePath
 }
 
 task buildAwsLambda {
@@ -128,11 +124,7 @@ task buildAwsLambda {
 }
 
 task uploadAwsLambda {
-    dependsOn(
-            updateConferenceLambda, updateConferencesLambda,
-            updateFeedbackLambda, updateSessionsLambda,
-            updateVerifyaccountLambda
-    )
+    dependsOn tasks.withType(AWSLambdaUpdateFunctionCodeTask)
 }
 
 build.dependsOn buildAwsLambda
