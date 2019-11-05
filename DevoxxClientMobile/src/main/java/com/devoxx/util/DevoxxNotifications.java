@@ -419,7 +419,7 @@ public class DevoxxNotifications {
         return new Notification(
                 ID_START + session.getTalk().getId(),
                 TITLE_SESSION_STARTS, 
-                DevoxxBundle.getString("OTN.VISUALS.IS_ABOUT_TO_START", session.getTitle()),
+                DevoxxBundle.getString("OTN.VISUALS.IS_ABOUT_TO_START", session.getTitle(), session.getRoomName()),
                 DevoxxNotifications.class.getResourceAsStream("/icon.png"),
                 dateTimeStart,
                 () -> {
