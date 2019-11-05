@@ -140,10 +140,9 @@ public class AuthenticatePresenter extends GluonPresenter<DevoxxApplication> {
         response.setOnFailed(e -> {
             if (failure != null) {
                 failure.run();
-            } else {
-                Toast toast = new Toast(DevoxxBundle.getString("OTN.AUTHENTICATION.FAILURE"));
-                toast.show();
             }
+            Toast toast = new Toast(DevoxxBundle.getString("OTN.AUTHENTICATION.FAILURE"));
+            toast.show();
             appBar.setProgressBarVisible(false);
         });
     }
