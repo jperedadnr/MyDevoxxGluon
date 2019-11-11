@@ -82,6 +82,10 @@ public class Session extends Searchable {
         return roomName;
     }
 
+    public boolean hasRoomName() {
+        return getRoomName() != null && getRoomName().length() > 0;
+    }
+
     public void setRoomName(String roomName) {
         this.roomName = roomName;
     }
