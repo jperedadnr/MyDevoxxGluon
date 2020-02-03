@@ -91,6 +91,12 @@ public interface Service {
      */
     Conference getConference();
 
+    /**
+     * Creates and returns a conference object from private storage
+     * @return Conference information from private storage
+     */
+    Conference createConferenceFromLocalStorage();
+
     ReadOnlyObjectProperty<Conference> conferenceProperty();
 
     /**
@@ -284,6 +290,12 @@ public interface Service {
      * @return The authenticated user, if present.
      */
     User getAuthenticatedUser();
+
+    /**
+     * Returns the username of the authenticated cfp.dev user if logged in. Otherwise, returns null.
+     * @return the username, if logged in.
+     */
+    public String getUsername();
 
     /**
      * Returns the cfp user uid, if present. Otherwise, returns null.

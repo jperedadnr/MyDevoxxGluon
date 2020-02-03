@@ -25,6 +25,11 @@
  */
 package com.gluonhq.devoxx.serverless.sessions;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Cleaner;
+import org.jsoup.safety.Whitelist;
+
 import javax.json.*;
 import javax.json.stream.JsonCollectors;
 import javax.ws.rs.WebApplicationException;
@@ -101,14 +106,15 @@ public class SessionsRetriever {
 
     private JsonObject updateSession(JsonObject source, String cfpEndpoint) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
-        builder.add("slotId",         source.get("id"));
-        builder.add("roomId",         source.get("roomId"));
-        builder.add("roomName",       source.get("roomName"));
-        builder.add("day",       "");
-        builder.add("fromTime",       source.get("fromDate"));
-        builder.add("fromTimeMillis", ZonedDateTime.parse(source.getString("fromDate")).toInstant().toEpochMilli());
-        builder.add("toTime",         source.get("toDate"));
-        builder.add("toTimeMillis",   ZonedDateTime.parse(source.getString("toDate")).toInstant().toEpochMilli());
+        builder.add("slotId",          source.get("id"));
+        builder.add("roomId",          source.get("roomId"));
+        builder.add("roomName",        source.get("roomName"));
+        builder.add("day",        "");
+        builder.add("fromTime",        source.get("fromDate"));
+        builder.add("fromTimeMillis",  ZonedDateTime.parse(source.getString("fromDate")).toInstant().toEpochMilli());
+        builder.add("toTime",          source.get("toDate"));
+        builder.add("toTimeMillis",    ZonedDateTime.parse(source.getString("toDate")).toInstant().toEpochMilli());
+        builder.add("totalFavourites", source.getInt("totalFavourites", 0));
 
         final boolean aBreak = source.getBoolean("sessionTypeBreak");
         builder.add("break", aBreak ? fetchBreak(source) : JsonValue.NULL);
@@ -153,13 +159,20 @@ public class SessionsRetriever {
         builder.add("trackId",       source.get("trackId"));
         builder.add("lang",          source.get("langName"));
         builder.add("audienceLevel", source.get("audienceLevel"));
-        builder.add("summary",       source.get("talkDescription"));
-        builder.add("summaryAsHtml", "");
+        builder.add("summary",       removeHTMLTags(source.getString("talkDescription")));
+        builder.add("summaryAsHtml", source.get("talkDescription"));
         builder.add("tags",
                 source.containsKey("tags") ? updateTags(source.getJsonArray("tags")) : emptyJsonArray());
         builder.add("speakers",
                 source.containsKey("speakers") ? updateSpeakers(source.getJsonArray("speakers")) : emptyJsonArray());
         return builder.build();
+    }
+
+    private String removeHTMLTags(String talkDescription) {
+        Document dirty = Jsoup.parse(talkDescription);
+        Cleaner cleaner = new Cleaner(Whitelist.none());
+        Document clean = cleaner.clean(dirty);
+        return clean.body().text();
     }
 
     private JsonArray updateTags(JsonArray tags) {

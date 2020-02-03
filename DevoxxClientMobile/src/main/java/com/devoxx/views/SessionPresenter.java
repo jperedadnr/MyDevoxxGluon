@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2018 Gluon Software
+ * Copyright (c) 2016, 2019 Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -28,6 +28,7 @@ package com.devoxx.views;
 import com.devoxx.DevoxxApplication;
 import com.devoxx.DevoxxView;
 import com.devoxx.control.DataLabel;
+import com.devoxx.model.AudienceLevel;
 import com.devoxx.model.Link;
 import com.devoxx.model.Session;
 import com.devoxx.model.Speaker;
@@ -342,10 +343,11 @@ public class SessionPresenter extends GluonPresenter<DevoxxApplication> {
         vbox.getStyleClass().add("session-info");
 
         // Check for audience level
-        if (session.getTalk().getAudienceLevel() != null) {
-            Label audienceLevel = fetchLabelForAudienceLevel(session.getTalk().getAudienceLevel());
-            audienceLevel.getStyleClass().add("audience-level");
-            vbox.getChildren().add(audienceLevel);
+        final String audienceLevel = session.getTalk().getAudienceLevel();
+        if (audienceLevel != null && AudienceLevel.contains(audienceLevel)) {
+            Label audienceLevelLabel = fetchLabelForAudienceLevel(audienceLevel);
+            audienceLevelLabel.getStyleClass().add("audience-level");
+            vbox.getChildren().add(audienceLevelLabel);
         }
         if (DevoxxSettings.conferenceHasMultipleLanguages(service.getConference())) {
             vbox.getChildren().add(flag(session));
@@ -371,13 +373,7 @@ public class SessionPresenter extends GluonPresenter<DevoxxApplication> {
     }
 
     private Label fetchLabelForAudienceLevel(String audienceLevel) {
-        if (audienceLevel.equalsIgnoreCase("L1")) {
-            return new Label(DevoxxBundle.getString("OTN.SESSION.AUDIENCE_LEVEL.BEGINNER"));
-        } else if (audienceLevel.equalsIgnoreCase("L2")) {
-            return new Label(DevoxxBundle.getString("OTN.SESSION.AUDIENCE_LEVEL.INTERMEDIATE"));
-        } else {
-            return new Label(DevoxxBundle.getString("OTN.SESSION.AUDIENCE_LEVEL.EXPERT"));
-        }
+        return new Label(AudienceLevel.valueOf(audienceLevel).getText());
     }
 
     private Label createTag(String tagText) {

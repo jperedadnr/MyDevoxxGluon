@@ -122,26 +122,16 @@ public class DevoxxApplication extends MobileApplication {
     public void postInit(Scene scene) {
 
         // Check if conference is set and switch to Sessions view
-        SettingsService.create().ifPresent(settingsService -> {
-            String conferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
-            String conferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
-            String conferenceName = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME);
-            String conferenceType = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_TYPE);
-            if (conferenceId != null && conferenceName != null && conferenceType != null) {
-                Conference conference = new Conference();
-                conference.setId(conferenceId);
-                conference.setCfpURL(conferenceCfpURL);
-                conference.setName(conferenceName);
-                conference.setEventType(conferenceType);
-                ConferenceLoadingLayer.show(service, conference);
-            }
-        });
+        final Conference conference = service.createConferenceFromLocalStorage();
+        if (conference.getId() != null && conference.getName() != null && conference.getEventType() != null) {
+            ConferenceLoadingLayer.show(service, conference);
+        }
 
         String deviceFactorSuffix = DeviceService.create()
                 .map(s -> {
                     if (Platform.isAndroid() && s.getModel() != null) {
                         for (String device : DevoxxSettings.DEVICES_WITH_SANS_CSS) {
-                            if (s.getModel().toLowerCase(Locale.ROOT).startsWith(device)) {
+                            if (s.getModel().toLowerCase(Locale.ROOT).contains(device)) {
                                 return "_sans";
                             }
                         }

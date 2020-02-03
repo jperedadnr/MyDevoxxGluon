@@ -1,4 +1,22 @@
+import jp.classmethod.aws.gradle.lambda.AWSLambdaUpdateFunctionCodeTask
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath "jp.classmethod.aws:gradle-aws-plugin:0.41"
+    }
+}
+
 apply plugin: 'java'
+apply plugin: 'jp.classmethod.aws.lambda'
+
+aws {
+    profileName = "default"
+    region = "eu-west-1"
+}
 
 repositories {
     jcenter()
@@ -11,6 +29,7 @@ dependencies {
     compile "org.glassfish:javax.json:1.1"
     compile 'com.amazonaws:aws-lambda-java-core:1.1.0'
     compile 'com.amazonaws:aws-java-sdk-ses:1.11.368'
+    compile 'org.jsoup:jsoup:1.12.1'
 }
 
 task conferenceZip(type: Zip) {
@@ -25,6 +44,11 @@ task conferenceZip(type: Zip) {
     }
 }
 
+task updateConferenceLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: conferenceZip) {
+    functionName = "devoxxConference"
+    zipFile = conferenceZip.archivePath
+}
+
 task conferencesZip(type: Zip) {
     archiveName = "conferences.zip"
     into ('') {
@@ -37,6 +61,11 @@ task conferencesZip(type: Zip) {
     }
 }
 
+task updateConferencesLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: conferencesZip) {
+    functionName = "devoxxAllConferences"
+    zipFile = conferencesZip.archivePath
+}
+
 task feedbackZip(type: Zip) {
     archiveName = "feedback.zip"
     into ('') {
@@ -46,6 +75,11 @@ task feedbackZip(type: Zip) {
     into('lib') {
         from configurations.runtime
     }
+}
+
+task updateFeedbackLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: feedbackZip) {
+    functionName = "devoxxSendFeedback"
+    zipFile = feedbackZip.archivePath
 }
 
 task sessionsZip(type: Zip) {
@@ -60,6 +94,11 @@ task sessionsZip(type: Zip) {
     }
 }
 
+task updateSessionsLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: sessionsZip) {
+    functionName = "devoxxRetrieveSessionsV2"
+    zipFile = sessionsZip.archivePath
+}
+
 task verifyaccountZip(type: Zip) {
     archiveName = "verifyaccount.zip"
     into ('') {
@@ -71,12 +110,21 @@ task verifyaccountZip(type: Zip) {
     }
 }
 
+task updateVerifyaccountLambda(type: AWSLambdaUpdateFunctionCodeTask, dependsOn: verifyaccountZip) {
+    functionName = "devoxxAccountCredentials"
+    zipFile = verifyaccountZip.archivePath
+}
+
 task buildAwsLambda {
     dependsOn(
             conferenceZip, conferencesZip,
             feedbackZip, sessionsZip,
             verifyaccountZip
     )
+}
+
+task uploadAwsLambda {
+    dependsOn tasks.withType(AWSLambdaUpdateFunctionCodeTask)
 }
 
 build.dependsOn buildAwsLambda

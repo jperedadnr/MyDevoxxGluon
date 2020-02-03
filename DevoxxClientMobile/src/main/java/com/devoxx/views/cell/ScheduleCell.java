@@ -26,6 +26,7 @@
 package com.devoxx.views.cell;
 
 import com.devoxx.DevoxxView;
+import com.devoxx.model.Conference;
 import com.devoxx.model.Favorite;
 import com.devoxx.model.Session;
 import com.devoxx.model.TalkSpeaker;
@@ -219,7 +220,7 @@ public class ScheduleCell extends CharmListCell<Session> {
         Label label = (Label) vBox.getChildren().get(vBox.getChildren().size() - 1);
         Label favLabel = new Label();
         favLabel.textProperty().bind(fav.favsProperty().asString());
-        favLabel.visibleProperty().bind(fav.favsProperty().greaterThanOrEqualTo(10));
+        favLabel.visibleProperty().bind(fav.favsProperty().greaterThanOrEqualTo(favoriteThreshold()));
         favLabel.getStyleClass().add("fav-label");
         Node graphic = MaterialDesignIcon.FAVORITE.graphic();
         graphic.getStyleClass().add("fav-graphic");
@@ -324,5 +325,9 @@ public class ScheduleCell extends CharmListCell<Session> {
 
             return node;
         }
+    }
+
+    private int favoriteThreshold() {
+        return service.getConference().getEventType() == Conference.Type.DEVOXX ? 10 : 3;
     }
 }

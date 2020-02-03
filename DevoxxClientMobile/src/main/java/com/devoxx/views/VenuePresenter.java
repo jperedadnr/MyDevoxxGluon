@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2016, 2018 Gluon Software
+/*
+ * Copyright (c) 2016, 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -76,7 +76,10 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
     private Label name;
 
     @FXML
-    private Label address;
+    private Label address1;
+
+    @FXML
+    private Label address2;
 
     private MapLayer venueMarker;
     private final ChangeListener<Number> widthListener = (observable, oldValue, newValue) -> resizeImages();
@@ -120,20 +123,26 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
 
     private void fetchLocationAndUpdateVenue(Conference conference) {
         createFloatingActionButtons(conference);
-        final GluonObservableObject<Location> location = service.retrieveLocation();
-        if (location.isInitialized()) {
-            updateVenueInformation(conference, location.get());
-        }
-        location.initializedProperty().addListener((o, ov, nv) -> {
-            if (nv) {
+        if (service.isNewCfpURL()) {
+            final Location location = createLocationFrom(conference);
+            updateVenueInformation(conference, location);
+        } else {
+            final GluonObservableObject<Location> location = service.retrieveLocation();
+            if (location.isInitialized()) {
                 updateVenueInformation(conference, location.get());
             }
-        });
+            location.initializedProperty().addListener((o, ov, nv) -> {
+                if (nv) {
+                    updateVenueInformation(conference, location.get());
+                }
+            });
+        }
     }
 
     private void updateVenueInformation(Conference conference, Location location) {
         name.setText(location.getName());
-        address.setText(getLocationAddress(location));
+        address1.setText(getLocationAddress1(location));
+        address2.setText(getLocationAddress2(location));
 
         MapPoint venuePoint = new MapPoint(location.getLatitude(), location.getLongitude());
         mapView.setCenter(venuePoint);
@@ -153,9 +162,9 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
         resizeImages();
     }
 
-    private String getLocationAddress(Location location) {
+    private String getLocationAddress1(Location location) {
         StringBuilder address = new StringBuilder();
-        if (location.getAddress1() != null && !location.getAddress2().equals("")) {
+        if (location.getAddress1() != null && !location.getAddress1().equals("")) {
             address.append(location.getAddress1());
         }
         if (location.getAddress2() != null && !location.getAddress2().equals("")) {
@@ -164,6 +173,11 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
             }
             address.append(location.getAddress2());
         }
+        return address.toString();
+    }
+
+    private String getLocationAddress2(Location location) {
+        StringBuilder address = new StringBuilder();
         if (location.getCity() != null && !location.getCity().equals("")) {
             if (!address.toString().equals("")) {
                 address.append("\n");
@@ -179,7 +193,6 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
             }
             address.append(location.getCountry());
         }
-        
         return address.toString();
     }
 
@@ -212,5 +225,16 @@ public class VenuePresenter extends GluonPresenter<DevoxxApplication> {
         // Resize and translate ImageView
         // Resize imageSpacer and stop expanding when a maxHeight is reached.
         Util.resizeImageViewAndImageSpacer(imageSpacer, imageView, newWidth, newHeight / 3.5);
+    }
+
+    private Location createLocationFrom(Conference conference) {
+        final Location location = new Location();
+        location.setName(conference.getName());
+        location.setAddress1(conference.getLocationAddress());
+        location.setCity(conference.getLocationCity());
+        location.setCountry(conference.getLocationCountry());
+        location.setLatitude(conference.getVenueLatitude());
+        location.setLongitude(conference.getVenueLongitude());
+        return location;
     }
 }

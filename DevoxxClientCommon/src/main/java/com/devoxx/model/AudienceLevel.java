@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2018, 2019, Gluon Software
+/*
+ * Copyright (c) 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -23,50 +23,42 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-@import "devoxx.css";
+package com.devoxx.model;
 
-/** AppBar **/
-.app-bar > .title-box > .label {
-    -fx-font-size: 1.25em;
-}
+import com.devoxx.util.DevoxxBundle;
 
-/** StatusBar **/
-/* TODO: Uncomment when StatusBar Glisten bug is fixed */
-/*
-.status-bar,
-.status-bar:conf,
-.status-bar:error,
-.status-bar:conf:error {
-    -fx-background-color: transparent;
-}
+import java.util.Arrays;
 
-.status-bar:voxxed {
-    -fx-background-color: transparent;
-}*/
+public enum AudienceLevel {
+    BEGINNER     ("OTN.SESSION.AUDIENCE_LEVEL.BEGINNER"),
+    INTERMEDIATE ("OTN.SESSION.AUDIENCE_LEVEL.INTERMEDIATE"),
+    ADVANCED     ("OTN.SESSION.AUDIENCE_LEVEL.ADVANCED"),
+    EXPERT       ("OTN.SESSION.AUDIENCE_LEVEL.EXPERT");
 
-/** Views **/
-.conf-selector {
-    -fx-padding: 17mm 0 17mm 0;
-}
+    private String resourceName;
 
-.exhibitor-detail .details,
-.sponsor-detail .details {
-    -fx-padding: 0em 0em 0em 0.8em;
-}
+    AudienceLevel(String resourceName) {
+        this.resourceName = resourceName;
+    }
 
-.venue-detail .address1 {
-    -fx-padding: 0em 0em 0em 0.8em;
-}
+    /**
+     * Checks if a string can be mapped to any of the values in {@link AudienceLevel}.
+     * @param audienceLevel string to test
+     * @return True if the string matches one of the values, else false.
+     */
+    public static boolean contains(String audienceLevel) {
+        try {
+            return Arrays.asList(AudienceLevel.values()).contains(AudienceLevel.valueOf(audienceLevel));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
 
-.venue-detail .address2 {
-    -fx-padding: 0 0 0.8em 0.8em;
-}
-
-/* Filter view inside session view */
-.sessions-filter {
-    -fx-padding: 11.52mm 0 0 0;
-}
-
-.conf-selector-view.hidden-app-bar {
-    -fx-padding: 11.52mm 0 5.44mm 0;
+    /**
+     * Returns the text to be displayed for an {@link AudienceLevel}.
+     * @return Text to be displayed for an {@link AudienceLevel}.
+     */
+    public String getText() {
+        return DevoxxBundle.getString(resourceName);
+    }
 }

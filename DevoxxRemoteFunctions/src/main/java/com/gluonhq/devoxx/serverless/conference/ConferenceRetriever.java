@@ -25,7 +25,10 @@
  */
 package com.gluonhq.devoxx.serverless.conference;
 
+import com.gluonhq.devoxx.serverless.util.FloorPlansRetriever;
+
 import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonReader;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -55,7 +58,8 @@ public class ConferenceRetriever {
         if (conferences.getStatus() == Response.Status.OK.getStatusCode()) {
             try (JsonReader conferenceReader = Json.createReader(new StringReader(conferences.readEntity(String.class)))) {
                 if (isNewCfpURL(cfpEndpoint)) {
-                    return createCleanResponseForClientFromNewEndpoint(conferenceReader.readObject()).toString();
+                    final JsonArray floorPlans = new FloorPlansRetriever().retrieve(cfpEndpoint);
+                    return createCleanResponseForClientFromNewEndpoint(conferenceReader.readObject(), floorPlans).toString();
                 } else {
                     return createCleanResponseForClientFromOldEndpoint(conferenceReader.readObject()).toString();
                 }

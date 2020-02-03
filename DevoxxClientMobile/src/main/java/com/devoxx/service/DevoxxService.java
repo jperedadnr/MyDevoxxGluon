@@ -37,6 +37,7 @@ import com.devoxx.views.helper.SessionVisuals.SessionListType;
 import com.devoxx.views.helper.Util;
 import com.devoxx.views.layer.ConferenceLoadingLayer;
 import com.gluonhq.attach.device.DeviceService;
+import com.gluonhq.attach.connectivity.ConnectivityService;
 import com.gluonhq.attach.runtimeargs.RuntimeArgsService;
 import com.gluonhq.attach.settings.SettingsService;
 import com.gluonhq.attach.storage.StorageService;
@@ -56,6 +57,8 @@ import com.gluonhq.connect.converter.JsonInputConverter;
 import com.gluonhq.connect.converter.JsonIterableInputConverter;
 import com.gluonhq.connect.provider.DataProvider;
 import javafx.beans.property.*;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -68,6 +71,7 @@ import java.time.*;
 //import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -261,7 +265,7 @@ public class DevoxxService implements Service {
                 } else {
                     LOG.log(Level.WARNING, "Found old conference id format, removing it");
                     clearCfpAccount();
-                    settingsService.remove(DevoxxSettings.SAVED_CONFERENCE_ID);
+                    settingsService.remove(SAVED_CONFERENCE_ID);
                 }
             }
 
@@ -397,6 +401,7 @@ public class DevoxxService implements Service {
     public GluonObservableObject<Conference> retrieveConference(String conferenceId, String cfpURL) {
         RemoteFunctionObject fnConference = RemoteFunctionBuilder.create("conference")
                 .param("id", conferenceId)
+                .param("cfpEndpoint", cfpURL)
                 .object();
         GluonObservableObject<Conference> conference = fnConference.call(Conference.class);
 
@@ -414,9 +419,36 @@ public class DevoxxService implements Service {
                     ready.set(true);
                 }
             });
-            conference.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException()));
+            conference.setOnFailed(e -> {
+                if (conference.get() != null) {
+                    // cfpURL is no longer a part of conference
+                    // we need to manually set it
+                    conference.get().setCfpURL(cfpURL);
+                    setConference(conference.get());
+                }
+                LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "conference"), e.getSource().getException());
+                switchToConfSelectorAndShowAlert();
+            });
         }
 
+        return conference;
+    }
+
+    @Override
+    public Conference createConferenceFromLocalStorage() {
+        Conference conference = new Conference();
+        SettingsService.create().ifPresent(settingsService -> {
+            String conferenceId = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_ID);
+            String conferenceCfpURL = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_CFP_URL);
+            String conferenceName = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_NAME);
+            String conferenceType = settingsService.retrieve(DevoxxSettings.SAVED_CONFERENCE_TYPE);
+            if (conferenceId != null && conferenceCfpURL != null) {
+                conference.setId(conferenceId);
+                conference.setCfpURL(conferenceCfpURL);
+                conference.setName(conferenceName);
+                conference.setEventType(conferenceType);
+            }
+        });
         return conference;
     }
 
@@ -549,6 +581,7 @@ public class DevoxxService implements Service {
             
             GluonObservableList<JsonObject> speakersList = fnSpeakers.call(JsonObject.class);
             speakersList.setOnFailed(e -> {
+                speakers.setAll(toSpeakers(speakersList));
                 retrievingSpeakers.set(false);
                 LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakersV2"), e.getSource().getException());
             });
@@ -565,6 +598,7 @@ public class DevoxxService implements Service {
 
             GluonObservableList<Speaker> speakersList = fnSpeakers.call(Speaker.class);
             speakersList.setOnFailed(e -> {
+                speakers.setAll(speakersList);
                 retrievingSpeakers.set(false);
                 LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakers"), e.getSource().getException());
             });
@@ -596,11 +630,12 @@ public class DevoxxService implements Service {
                             .object();
 
                     GluonObservableObject<JsonObject> gluonSpeaker = fnSpeaker.call(JsonObject.class);
-                    gluonSpeaker.setOnFailed(e -> {
-                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
-                    });
                     gluonSpeaker.setOnSucceeded(e -> {
                         updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                    });
+                    gluonSpeaker.setOnFailed(e -> {
+                        updateSpeakerDetails(toSpeaker(gluonSpeaker.get()));
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speakerV2"), e.getSource().getException());
                     });
                 } else {
                     RemoteFunctionObject fnSpeaker = RemoteFunctionBuilder.create("speaker")
@@ -613,7 +648,10 @@ public class DevoxxService implements Service {
                     gluonSpeaker.setOnSucceeded(e -> {
                         updateSpeakerDetails(gluonSpeaker.get());
                     });
-                    gluonSpeaker.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException()));
+                    gluonSpeaker.setOnFailed(e -> {
+                        updateSpeakerDetails(gluonSpeaker.get());
+                        LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "speaker"), e.getSource().getException());
+                    });
                     return gluonSpeaker;
                 }
             }
@@ -650,10 +688,11 @@ public class DevoxxService implements Service {
     }
 
     private boolean isNewCfpURL(String cfp) {
-        return cfp.matches(".+?(?=.cfp.dev)(.*)");
+        return cfp.matches(".+?(?=.cfp.dev/api)(.*)");
     }
 
     private void updateSpeakerDetails(Speaker updatedSpeaker) {
+        if (updatedSpeaker == null) return;
         for (Speaker speaker : speakers) {
             if (speaker.getUuid().equals(updatedSpeaker.getUuid())) {
                 speaker.setAcceptedTalks(updatedSpeaker.getAcceptedTalks());
@@ -738,8 +777,13 @@ public class DevoxxService implements Service {
 
     @Override
     public GluonObservableList<Sponsor> retrieveSponsors() {
+        // Sponsors still use the id from the conferences list
+        AtomicReference<String> configuredConferenceId = new AtomicReference<>();
+        SettingsService.create().ifPresent(settingsService -> {
+            configuredConferenceId.set(settingsService.retrieve(SAVED_CONFERENCE_ID));
+        });
         RemoteFunctionList fnSponsors = RemoteFunctionBuilder.create("sponsors")
-                .param("conferenceId", getConference().getId())
+                .param("conferenceId", configuredConferenceId.get())
                 .list();
         GluonObservableList<Sponsor> badgeSponsorsList = fnSponsors.call(Sponsor.class);
         badgeSponsorsList.setOnFailed(e -> LOG.log(Level.WARNING, String.format(REMOTE_FUNCTION_FAILED_MSG, "sponsors"), e.getSource().getException()));
@@ -935,12 +979,14 @@ public class DevoxxService implements Service {
                 .param("7", ZonedDateTime.now().toString())
                 .object();
         GluonObservableObject<String> sponsorBadgeResult = fnSponsorBadge.call(String.class);
-        sponsorBadgeResult.initializedProperty().addListener((obs, ov, nv) -> {
-            if (nv) {
-                LOG.log(Level.INFO, "Response from save sponsor badge: " + sponsorBadgeResult.get());
-            }
+        sponsorBadgeResult.setOnFailed(e -> {
+            LOG.log(Level.WARNING, "Failed to call save sponsor badge: ", e.getSource().getException());
+            retrySaveSponsorBadge(sponsorBadge);
         });
-        sponsorBadgeResult.setOnFailed(e -> LOG.log(Level.WARNING, "Failed to call save sponsor badge: ", e.getSource().getException()));
+        sponsorBadgeResult.setOnSucceeded(e -> {
+            LOG.log(Level.INFO, "Response from save sponsor badge: " + sponsorBadgeResult.get());
+            sponsorBadge.setSync(true);
+        });
     }
 
     @Override
@@ -1076,6 +1122,10 @@ public class DevoxxService implements Service {
     @Override
     public User getAuthenticatedUser() {
         return authenticationClient.getAuthenticatedUser();
+    }
+
+    public String getUsername() {
+        return username.get();
     }
 
     @Override
@@ -1289,5 +1339,40 @@ public class DevoxxService implements Service {
 
     private String conferenceUserKey() {
         return getConference().getId() + "_" + encode(username.get());
+    }
+
+    private void retrySaveSponsorBadge(SponsorBadge sponsorBadge) {
+        ConnectivityService.create().ifPresent(service -> {
+            if (!service.isConnected()) {
+                service.connectedProperty().addListener(new ChangeListener<Boolean>() {
+                    @Override
+                    public void changed(ObservableValue<? extends Boolean> o, Boolean ov, Boolean nv) {
+                        if (nv) {
+                            saveSponsorBadge(sponsorBadge);
+                        }
+                        service.connectedProperty().removeListener(this);
+                    }
+                });
+            }
+        });
+    }
+
+    private void switchToConfSelectorAndShowAlert() {
+        final Conference conferenceDetails = createConferenceFromLocalStorage();
+        ConferenceLoadingLayer.hide(conferenceDetails);
+        DevoxxView.CONF_SELECTOR.switchView();
+        Alert alert = new Alert(javafx.scene.control.Alert.AlertType.WARNING);
+        alert.setContentText(String.format(DevoxxBundle.getString("OTN.DIALOG.CONF_ISSUE"), conferenceDetails.getName()));
+        alert.setOnCloseRequest(cr -> clearConferenceDetails());
+        alert.showAndWait();
+    }
+
+    private void clearConferenceDetails() {
+        SettingsService.create().ifPresent(settingsService -> {
+            settingsService.remove(SAVED_CONFERENCE_ID);
+            settingsService.remove(SAVED_CONFERENCE_CFP_URL);
+            settingsService.remove(SAVED_CONFERENCE_NAME);
+            settingsService.remove(SAVED_CONFERENCE_TYPE);
+        });
     }
 }

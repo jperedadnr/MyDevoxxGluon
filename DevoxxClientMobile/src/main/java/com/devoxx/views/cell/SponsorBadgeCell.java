@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2018, 2019, Gluon Software
+/*
+ * Copyright (c) 2019, Gluon Software
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
@@ -23,50 +23,22 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-@import "devoxx.css";
+package com.devoxx.views.cell;
 
-/** AppBar **/
-.app-bar > .title-box > .label {
-    -fx-font-size: 1.25em;
-}
+import com.devoxx.model.SponsorBadge;
+import javafx.css.PseudoClass;
 
-/** StatusBar **/
-/* TODO: Uncomment when StatusBar Glisten bug is fixed */
-/*
-.status-bar,
-.status-bar:conf,
-.status-bar:error,
-.status-bar:conf:error {
-    -fx-background-color: transparent;
-}
+public class SponsorBadgeCell extends BadgeCell<SponsorBadge> {
 
-.status-bar:voxxed {
-    -fx-background-color: transparent;
-}*/
+    private final PseudoClass PSEUDO_CLASS_SYNC = PseudoClass.getPseudoClass("sync");
+    
+    public SponsorBadgeCell() {
+        getStyleClass().add("sponsor-badge-cell");
+    }
 
-/** Views **/
-.conf-selector {
-    -fx-padding: 17mm 0 17mm 0;
-}
-
-.exhibitor-detail .details,
-.sponsor-detail .details {
-    -fx-padding: 0em 0em 0em 0.8em;
-}
-
-.venue-detail .address1 {
-    -fx-padding: 0em 0em 0em 0.8em;
-}
-
-.venue-detail .address2 {
-    -fx-padding: 0 0 0.8em 0.8em;
-}
-
-/* Filter view inside session view */
-.sessions-filter {
-    -fx-padding: 11.52mm 0 0 0;
-}
-
-.conf-selector-view.hidden-app-bar {
-    -fx-padding: 11.52mm 0 5.44mm 0;
+    @Override
+    public void updateItem(SponsorBadge badge, boolean empty) {
+        super.updateItem(badge, empty);
+        pseudoClassStateChanged(PSEUDO_CLASS_SYNC, !badge.isSync());
+    }
 }

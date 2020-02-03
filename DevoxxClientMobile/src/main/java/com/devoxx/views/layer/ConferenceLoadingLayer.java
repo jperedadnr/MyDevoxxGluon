@@ -87,11 +87,15 @@ public class ConferenceLoadingLayer extends Layer {
         getChildren().addAll(background, progressIndicator, conferenceLabel);
 
         timeout = new PauseTransition(TIMEOUT);
-        timeout.setOnFinished(e -> hide());
+        timeout.setOnFinished(e -> {
+            hide();
+            DevoxxView.SESSIONS.switchView();
+        });
         // Listener helps for quick response in cases where data has been cached
         sessionsListener = o -> {
             if (service.retrieveSessions().size() > 0) {
                 doHide();
+                DevoxxView.SESSIONS.switchView();
             }
         };
         
@@ -141,7 +145,6 @@ public class ConferenceLoadingLayer extends Layer {
         if (timeout.getStatus() != STOPPED) timeout.stop();
         service.retrieveSessions().removeListener(sessionsListener);
         if (!isShowing()) return;
-        DevoxxView.SESSIONS.switchView();
         if (service.getConference() != null && isConferenceFromPast(service.getConference())) {
             showPastConferenceMessage();
         } else {
