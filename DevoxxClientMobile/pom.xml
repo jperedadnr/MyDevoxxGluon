@@ -38,26 +38,56 @@
             <groupId>com.gluonhq</groupId>
             <artifactId>charm-glisten</artifactId>
             <version>${gluon.mobile.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.gluonhq</groupId>
             <artifactId>glisten-afterburner</artifactId>
             <version>${gluon.afterburner.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.gluonhq</groupId>
             <artifactId>charm-cloudlink-client</artifactId>
             <version>${gluon.mobile.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.gluonhq</groupId>
             <artifactId>charm-glisten-connect-view</artifactId>
             <version>${gluon.mobile.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.gluonhq</groupId>
             <artifactId>maps</artifactId>
             <version>${gluon.maps.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 <!--        attach-->
@@ -248,7 +278,7 @@
                         <list>com/devoxx/devoxx</list>
                         <list>com.devoxx.views.badge</list>
                         <list>com.devoxx.views.badges</list>
-                        <list>com/devoxx/views/confselector</list>
+                        <list>com.devoxx.views.confselector</list>
                         <list>com.devoxx.views.vote</list>
                     </bundlesList>
                     <resourcesList>
@@ -278,7 +308,7 @@
                         <list>com.devoxx.views.SpeakerPresenter</list>
                         <list>com.devoxx.views.SpeakersPresenter</list>
                         <list>com.devoxx.views.SponsorBadgePresenter</list>
-                        <list>com.devoxx.views.SponsorsBadgePresenter</list>
+                        <list>com.devoxx.views.SponsorsPresenter</list>
                         <list>com.devoxx.views.VenuePresenter</list>
                         <list>com.devoxx.views.VotePresenter</list>
                         <list>com.devoxx.views.helper.FilterSessionsPresenter</list>
