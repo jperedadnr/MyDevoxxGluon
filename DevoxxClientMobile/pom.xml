@@ -282,6 +282,11 @@
                         <list>com.devoxx.views.vote</list>
                     </bundlesList>
                     <resourcesList>
+                        <item>.*\\.otf$</item>
+                        <item>.*\\.policy$</item>
+                        <item>.*\\.certs$</item>
+                        <item>.*\\.dat$</item>
+                        <item>.*\\.remove$</item>
                         <item>loggingON.properties</item>
                         <item>loggingOFF.properties</item>
                     </resourcesList>
@@ -351,7 +356,7 @@
 
                         <list>javafx.fxml.FXMLLoader</list>
                     </reflectionList>
-                    <verbose>true</verbose>
+<!--                    <verbose>true</verbose>-->
                     <mainClass>${mainClassName}</mainClass>
                 </configuration>
             </plugin>

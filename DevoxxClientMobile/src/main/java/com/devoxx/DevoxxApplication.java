@@ -60,8 +60,13 @@ import javafx.stage.Window;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 //import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -93,11 +98,47 @@ public class DevoxxApplication extends MobileApplication {
 
     private boolean signUp = false;
 
-    @Override
-    public void init() {
-
+    static {
         // Config logging
         DevoxxLogging.config();
+
+        LOG.log(Level.INFO, "JAVA HOME " + System.getProperty("java.home"));
+        LOG.log(Level.INFO, "USER HOME " + System.getProperty("user.home"));
+        try {
+            File root = StorageService.create().flatMap(StorageService::getPrivateStorage)
+                    .orElseThrow(() -> new IOException("Error: Storage is required"));
+            Path securityPath = Path.of(root.getAbsolutePath(), "lib", "security");
+            LOG.log(Level.INFO, "securityPath = " + securityPath);
+            if (!Files.exists(securityPath)) {
+                if (!Files.exists(Path.of(root.getAbsolutePath()))) {
+                    LOG.log(Level.INFO, "path0 = " + securityPath);
+                    Files.createDirectories(Path.of(root.getAbsolutePath()));
+                }
+                if (!Files.exists(Path.of(root.getAbsolutePath(), "lib"))) {
+                    LOG.log(Level.INFO, "path1 = " + securityPath);
+                    Files.createDirectories(Path.of(root.getAbsolutePath(), "lib"));
+                }
+                if (!Files.exists(Path.of(root.getAbsolutePath(), "lib", "security"))) {
+                    LOG.log(Level.INFO, "path2 = " + securityPath);
+                    Files.createDirectories(Path.of(root.getAbsolutePath(), "lib", "security"));
+                }
+                LOG.log(Level.INFO, "path3 = " + securityPath);
+
+                copyFileFromResources("/security/blacklisted.certs", securityPath.resolve("blacklisted.certs").toString());
+                copyFileFromResources("/security/cacerts.remove", securityPath.resolve("cacerts").toString());
+                copyFileFromResources("/security/default.policy", securityPath.resolve("default.policy").toString());
+                copyFileFromResources("/security/public_suffix_list.dat", securityPath.resolve("public_suffix_list.dat").toString());
+            }
+            System.setProperty("java.home", root.getAbsolutePath());
+            System.setProperty("javax.net.ssl.trustStore", securityPath.resolve("cacerts").toString());
+            System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        } catch (IOException e) {
+            LOG.log(Level.SEVERE, "Storage Service Error", e);
+        }
+    }
+
+    @Override
+    public void init() {
 
         new UsageClient().enable();
 
@@ -263,10 +304,32 @@ public class DevoxxApplication extends MobileApplication {
         }); 
     }
 
+
+    public static boolean copyFileFromResources(String pathIni, String pathEnd)  {
+        try (InputStream myInput = DevoxxApplication.class.getResourceAsStream(pathIni)) {
+            if (myInput == null) {
+                LOG.log(Level.WARNING, "Error file " + pathIni + " not found");
+                return false;
+            }
+            try (OutputStream myOutput = new FileOutputStream(pathEnd)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = myInput.read(buffer)) > 0) {
+                    myOutput.write(buffer, 0, length);
+                }
+                myOutput.flush();
+                LOG.log(Level.INFO, "File copied to " + pathEnd);
+                return true;
+            } catch (IOException ex) {
+                LOG.log(Level.WARNING, "Error copying file", ex);
+            }
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Error copying file", ex);
+        }
+        return false;
+    }
+
     public static void main(String[] args) {
-        System.setProperty("javafx.pulseLogger", "false");
-        System.setProperty("enable.logging", "true");
-        System.setProperty("file.encoding", "UTF-8");
         launch(args);
     }
 }

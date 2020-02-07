@@ -48,4 +48,11 @@
       {"name":"<init>","parameterTypes":[] }
     ]
   }
+,
+  {
+    "name":"com.gluonhq.impl.cloudlink.client.usage.Device",
+    "methods":[
+      {"name":"<init>","parameterTypes":[] }
+    ]
+  }
 ]
