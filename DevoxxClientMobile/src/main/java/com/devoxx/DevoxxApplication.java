@@ -33,7 +33,13 @@ import com.devoxx.model.Sponsor;
 import com.devoxx.model.SponsorBadge;
 import com.devoxx.service.DevoxxService;
 import com.devoxx.service.Service;
-import com.devoxx.util.*;
+import com.devoxx.util.DevoxxBundle;
+import com.devoxx.util.DevoxxCountry;
+import com.devoxx.util.DevoxxLogging;
+import com.devoxx.util.DevoxxNotifications;
+import com.devoxx.util.DevoxxSearch;
+import com.devoxx.util.DevoxxSettings;
+import com.devoxx.util.Strings;
 import com.devoxx.views.SessionsPresenter;
 import com.devoxx.views.helper.ConnectivityUtils;
 import com.devoxx.views.helper.SessionVisuals;
@@ -60,15 +66,11 @@ import javafx.stage.Window;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
-//import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,40 +103,6 @@ public class DevoxxApplication extends MobileApplication {
     static {
         // Config logging
         DevoxxLogging.config();
-
-        LOG.log(Level.INFO, "JAVA HOME " + System.getProperty("java.home"));
-        LOG.log(Level.INFO, "USER HOME " + System.getProperty("user.home"));
-        try {
-            File root = StorageService.create().flatMap(StorageService::getPrivateStorage)
-                    .orElseThrow(() -> new IOException("Error: Storage is required"));
-            Path securityPath = Path.of(root.getAbsolutePath(), "lib", "security");
-            LOG.log(Level.INFO, "securityPath = " + securityPath);
-            if (!Files.exists(securityPath)) {
-                if (!Files.exists(Path.of(root.getAbsolutePath()))) {
-                    LOG.log(Level.INFO, "path0 = " + securityPath);
-                    Files.createDirectories(Path.of(root.getAbsolutePath()));
-                }
-                if (!Files.exists(Path.of(root.getAbsolutePath(), "lib"))) {
-                    LOG.log(Level.INFO, "path1 = " + securityPath);
-                    Files.createDirectories(Path.of(root.getAbsolutePath(), "lib"));
-                }
-                if (!Files.exists(Path.of(root.getAbsolutePath(), "lib", "security"))) {
-                    LOG.log(Level.INFO, "path2 = " + securityPath);
-                    Files.createDirectories(Path.of(root.getAbsolutePath(), "lib", "security"));
-                }
-                LOG.log(Level.INFO, "path3 = " + securityPath);
-
-                copyFileFromResources("/security/blacklisted.certs", securityPath.resolve("blacklisted.certs").toString());
-                copyFileFromResources("/security/cacerts.remove", securityPath.resolve("cacerts").toString());
-                copyFileFromResources("/security/default.policy", securityPath.resolve("default.policy").toString());
-                copyFileFromResources("/security/public_suffix_list.dat", securityPath.resolve("public_suffix_list.dat").toString());
-            }
-            System.setProperty("java.home", root.getAbsolutePath());
-            System.setProperty("javax.net.ssl.trustStore", securityPath.resolve("cacerts").toString());
-            System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-        } catch (IOException e) {
-            LOG.log(Level.SEVERE, "Storage Service Error", e);
-        }
     }
 
     @Override
@@ -294,39 +262,13 @@ public class DevoxxApplication extends MobileApplication {
                         LOG.log(Level.WARNING, "Error writing csv file ", ex);
                     }
                     s.share(DevoxxBundle.getString("OTN.BADGES.SHARE.SUBJECT", service.getConference().getName()),
-//                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(LocalDate.now())),
-                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), LocalDate.now().toString()),
+                            DevoxxBundle.getString("OTN.BADGES.SHARE.MESSAGE", service.getConference().getName(), DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).format(LocalDate.now())),
                             "text/plain", file);
                 } else {
                     LOG.log(Level.WARNING, "Error accessing local storage");
                 }
             });
         }); 
-    }
-
-
-    public static boolean copyFileFromResources(String pathIni, String pathEnd)  {
-        try (InputStream myInput = DevoxxApplication.class.getResourceAsStream(pathIni)) {
-            if (myInput == null) {
-                LOG.log(Level.WARNING, "Error file " + pathIni + " not found");
-                return false;
-            }
-            try (OutputStream myOutput = new FileOutputStream(pathEnd)) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = myInput.read(buffer)) > 0) {
-                    myOutput.write(buffer, 0, length);
-                }
-                myOutput.flush();
-                LOG.log(Level.INFO, "File copied to " + pathEnd);
-                return true;
-            } catch (IOException ex) {
-                LOG.log(Level.WARNING, "Error copying file", ex);
-            }
-        } catch (IOException ex) {
-            LOG.log(Level.WARNING, "Error copying file", ex);
-        }
-        return false;
     }
 
     public static void main(String[] args) {
