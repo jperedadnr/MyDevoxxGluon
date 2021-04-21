@@ -38,7 +38,7 @@ import com.devoxx.views.cell.SponsorBadgeCell;
 import com.devoxx.views.helper.Placeholder;
 import com.devoxx.views.helper.Util;
 import com.gluonhq.attach.util.Platform;
-import com.gluonhq.attach.barcode.BarcodeScanService;
+import com.gluonhq.attach.barcodescan.BarcodeScanService;
 import com.gluonhq.attach.connectivity.ConnectivityService;
 import com.gluonhq.attach.settings.SettingsService;
 import com.gluonhq.charm.glisten.afterburner.GluonPresenter;

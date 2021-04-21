@@ -36,7 +36,7 @@ import com.devoxx.views.cell.BadgeCell;
 import com.devoxx.views.helper.LoginPrompter;
 import com.devoxx.views.helper.Placeholder;
 import com.devoxx.views.helper.Util;
-import com.gluonhq.attach.barcode.BarcodeScanService;
+import com.gluonhq.attach.barcodescan.BarcodeScanService;
 import com.gluonhq.attach.settings.SettingsService;
 import com.gluonhq.charm.glisten.afterburner.GluonPresenter;
 import com.gluonhq.charm.glisten.application.MobileApplication;

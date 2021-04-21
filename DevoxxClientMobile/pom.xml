@@ -69,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>com.gluonhq</groupId>
-            <artifactId>charm-glisten-connect-view</artifactId>
+            <artifactId>connect-view</artifactId>
             <version>${gluon.mobile.version}</version>
             <exclusions>
                 <exclusion>
@@ -185,7 +185,7 @@
         <dependency>
             <groupId>org.glassfish</groupId>
             <artifactId>jakarta.json</artifactId>
-            <version>1.1.5</version>
+            <version>1.1.6</version>
             <scope>runtime</scope>
             <classifier>module</classifier>
         </dependency>
@@ -282,11 +282,6 @@
                         <list>com.devoxx.views.vote</list>
                     </bundlesList>
                     <resourcesList>
-                        <item>.*\\.otf$</item>
-                        <item>.*\\.policy$</item>
-                        <item>.*\\.certs$</item>
-                        <item>.*\\.dat$</item>
-                        <item>.*\\.remove$</item>
                         <item>loggingON.properties</item>
                         <item>loggingOFF.properties</item>
                     </resourcesList>
@@ -354,7 +349,6 @@
                         <list>com.devoxx.service.Service</list>
                         <list>com.devoxx.service.DevoxxService</list>
 
-                        <list>javafx.fxml.FXMLLoader</list>
                     </reflectionList>
 <!--                    <verbose>true</verbose>-->
                     <mainClass>${mainClassName}</mainClass>
@@ -372,10 +366,6 @@
     </repositories>
 
     <pluginRepositories>
-        <pluginRepository>
-            <id>gluon-releases</id>
-            <url>http://nexus.gluonhq.com/nexus/content/repositories/releases/</url>
-        </pluginRepository>
         <pluginRepository>
             <id>gluon-snapshots</id>
             <url>https://nexus.gluonhq.com/nexus/content/repositories/public-snapshots</url>
